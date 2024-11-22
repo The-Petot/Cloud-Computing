@@ -2,6 +2,8 @@
   "name": "@bun-examples/elysia",
   "version": "1.0.50",
   "scripts": {
+    "start": "NODE_ENV=production bun dist/src/index.js",
+    "build": "swc src -d dist",
     "dev": "NODE_ENV=development bun run --watch src/index.ts",
     "db:migrate": "bunx drizzle-kit generate && bunx drizzle-kit migrate",
     "db:clear": "bun src/database/clear.ts"
@@ -11,6 +13,8 @@
     "@elysiajs/cors": "^1.1.1",
     "@elysiajs/jwt": "^1.1.1",
     "@elysiajs/swagger": "^1.1.6",
+    "@swc/cli": "^0.5.1",
+    "@swc/core": "^1.9.3",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.36.3",

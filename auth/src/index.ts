@@ -4,10 +4,10 @@ import authRouter from './routes/auth.route';
 import { jwt } from '@elysiajs/jwt';
 import { cors } from '@elysiajs/cors';
 import { logger } from '@bogeychan/elysia-logger';
-import redis from './database/redis';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import swagger from '@elysiajs/swagger';
+const redis = await import('./database/redis').then((m) => m.default);
 
 const app = new Elysia({
   serve: {
@@ -23,6 +23,7 @@ const app = new Elysia({
           description: 'This is the authentication service for Mindcraft',
           version: '1.0.0',
         },
+
       },
     })
   )
