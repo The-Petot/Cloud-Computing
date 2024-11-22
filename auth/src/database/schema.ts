@@ -34,15 +34,15 @@ export const suggestionsTable = pgTable('suggestions', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const refreshTokensTable = pgTable('refresh_tokens', {
-  id: serial().primaryKey(),
-  token: text().notNull(),
-  userId: integer('user_id')
-    .references(() => usersTable.id)
-    .notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  expiresAt: timestamp('expires_at').notNull(),
-});
+// export const refreshTokensTable = pgTable('refresh_tokens', {
+//   id: serial().primaryKey(),
+//   token: text().notNull(),
+//   userId: integer('user_id')
+//     .references(() => usersTable.id)
+//     .notNull(),
+//   createdAt: timestamp('created_at').notNull().defaultNow(),
+//   expiresAt: timestamp('expires_at').notNull(),
+// });
 
 export const challengesTable = pgTable('challenges', {
   id: serial().primaryKey(),
@@ -96,19 +96,19 @@ export const suggestionsUsersRelation = relations(
   })
 );
 
-export const usersRefreshTokensRelation = relations(usersTable, ({ one }) => ({
-  refreshToken: one(refreshTokensTable),
-}));
+// export const usersRefreshTokensRelation = relations(usersTable, ({ one }) => ({
+//   refreshToken: one(refreshTokensTable),
+// }));
 
-export const refreshTokensUsersRelation = relations(
-  refreshTokensTable,
-  ({ one }) => ({
-    user: one(usersTable, {
-      fields: [refreshTokensTable.userId],
-      references: [usersTable.id],
-    }),
-  })
-);
+// export const refreshTokensUsersRelation = relations(
+//   refreshTokensTable,
+//   ({ one }) => ({
+//     user: one(usersTable, {
+//       fields: [refreshTokensTable.userId],
+//       references: [usersTable.id],
+//     }),
+//   })
+// );
 
 export const usersChallengesRelation = relations(usersTable, ({ many }) => ({
   challenges: many(challengesTable),

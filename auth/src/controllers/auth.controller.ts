@@ -154,6 +154,7 @@ export const handleUserLogin: HandleUserLogin = async ({ jwt, body, set }) => {
   };
 };
 
-export const handleUserLogout: HandleUserLogout = async () => {};
+// export const handleTokenRefresh: HandleTokenRefresh = async () => {};
 
-export const handleTokenRefresh: HandleTokenRefresh = async () => {};
+// export const handleUserLogout: HandleUserLogout = async () => {};
+

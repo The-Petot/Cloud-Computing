@@ -1,4 +1,4 @@
-import { answersTable, challengesTable, participantsTable, questionsTable, refreshTokensTable, suggestionsTable, usersTable } from "./schema";
+import { answersTable, challengesTable, participantsTable, questionsTable, suggestionsTable, usersTable } from "./schema";
 
 const NUMBER_OF_ENTRIES = 10;
 
