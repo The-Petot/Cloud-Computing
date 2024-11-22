@@ -1,17 +1,19 @@
 import { Elysia } from 'elysia';
 import { getEnv } from './utils';
-import userRouter from './routes/user.route';
+import authRouter from './routes/auth.route';
+import { jwt } from '@elysiajs/jwt';
 
 const app = new Elysia({
   serve: {
-    hostname: getEnv('HOST') === 'production' ? getEnv('HOST') : 'localhost',
+    hostname:
+      getEnv('NODE_ENV') === 'production' ? getEnv('HOST') : 'localhost',
   },
   prefix: '/api/auth',
 })
-  .get('/', () => 'Welcome to auth services')
-  .use(userRouter)
+  .use(jwt({ secret: getEnv('JWT_SECRET'), name: 'jwt' }))
+  .use(authRouter)
   .listen(
-    Bun.env.NODE_ENV === 'production' ? parseInt(getEnv('PORT'), 10) : 3001
+    getEnv('NODE_ENV') === 'production' ? parseInt(getEnv('PORT'), 10) : 3001
   );
 
 console.log(`Server is running at ${app.server?.hostname}:${app.server?.port}`);
