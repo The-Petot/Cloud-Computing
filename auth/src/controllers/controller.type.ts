@@ -1,17 +1,18 @@
 import { InferHandler } from 'elysia';
 import app from '../index';
-import { usersTable } from '../database/schema';
+import { User } from '../global.types';
+import { registerDto } from '../dtos/auth.dtos';
 
 interface JSONErrorResponse {
   error: string;
 }
 
 interface JSONSuccessResponse<T> {
-  data: T;
+  data?: T;
   message: string;
 }
 
-export type User = typeof usersTable.$inferInsert;
+
 export type HandleUserRegister = InferHandler<
   typeof app,
   '/register',
@@ -27,6 +28,7 @@ export type HandleUserRegister = InferHandler<
     };
   }
 >;
+
 
 export type HandleUserLogin = InferHandler<
   typeof app,
@@ -44,14 +46,23 @@ export type HandleUserLogin = InferHandler<
 
 export type HandleUserLogout = InferHandler<
   typeof app,
-  '/logout'
+  '/logout',
+  {
+    body: { userId: number };
+    response: {
+      200: JSONSuccessResponse<{}>;
+      400: JSONErrorResponse;
+      401: JSONErrorResponse;
+      500: JSONErrorResponse;
+    };
+  }
 >
 
 export type HandleTokenRefresh = InferHandler<
   typeof app,
   '/refresh',
   {
-    body: { refreshToken: string };
+    body: { userId: number };
     response: {
       200: JSONSuccessResponse<{}>;
       400: JSONErrorResponse;

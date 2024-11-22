@@ -1,10 +1,10 @@
 import { Elysia } from 'elysia';
-import { handleUserRegister, handleUserLogin, handleUserLogout, handleTokenRefresh } from '../controllers/auth.controller';
+import { handleUserRegister, handleUserLogin, handleTokenRefresh, handleUserLogout } from '../controllers/auth.controller';
 
 const authRouter: Elysia = new Elysia()
 .post('/register', handleUserRegister)
 .post('/login', handleUserLogin)
-.post('/logout', handleUserLogout)
 .post('/refresh', handleTokenRefresh)
+.post('/logout', handleUserLogout)
 
 export default authRouter;

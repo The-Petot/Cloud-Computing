@@ -9,4 +9,6 @@ export interface ExtendedEnv extends Bun.env {
   DB_HOST: string;
   DB_PORT: string;
   JWT_SECRET: string
+  REDIS_URL_DEV: string;
+  REDIS_URL_PROD: string;
 }

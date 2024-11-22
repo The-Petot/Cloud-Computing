@@ -1,9 +1,12 @@
+import { JWTPayloadSpec } from '@elysiajs/jwt';
+import { Jwt, Redis, UserSessionData } from './global.types';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
 } from './services/service.type';
 import { ExtendedEnv } from './types';
 import bcrypt from 'bcrypt';
+import { v4 } from 'uuid';
 
 export function getEnv(key: keyof ExtendedEnv): string {
   const value = process.env[key];
@@ -51,4 +54,31 @@ export async function isPasswordMatch(
     );
     return false;
   }
+}
+
+export async function createSessionId(userId: number): Promise<string> {
+  const sessionId = await bcrypt.hash(`${String(userId)}:${v4()}`, 10);
+  return sessionId;
+}
+
+export async function generateAccessToken(
+  jwt: Jwt,
+  userId: number
+): Promise<string> {
+  const accessToken = await jwt.sign({
+    userId,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60,
+  });
+  return accessToken;
+}
+
+export async function generateRefreshToken(
+  jwt: Jwt,
+  userId: number
+): Promise<string> {
+  const refreshToken = await jwt.sign({
+    userId,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
+  });
+  return refreshToken;
 }
