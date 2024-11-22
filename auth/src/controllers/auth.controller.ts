@@ -255,6 +255,7 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
   set.status = 200;
   set.headers['authorization'] = `Bearer ${accessToken}`;
   set.headers['X-Refresh-Token'] = newRefreshToken;
+  set.headers['X-Session-Id'] = newSessionId;
 
   return {
     message: 'Token refreshed successfully',

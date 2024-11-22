@@ -121,13 +121,13 @@ const authRouter: Elysia = new Elysia()
             schema: {
               type: 'object',
               properties: {
-                email: { 
+                email: {
                   type: 'string',
                   format: 'email',
                   example: 'user@example.com',
                   description: 'Registered email address of the user',
                 },
-                password: { 
+                password: {
                   type: 'string',
                   example: 'userPassword123',
                   description: 'Password associated with the user account',
@@ -137,7 +137,7 @@ const authRouter: Elysia = new Elysia()
             },
           },
         },
-      },      
+      },
       responses: {
         200: {
           description: 'User authenticated successfully',
@@ -149,14 +149,14 @@ const authRouter: Elysia = new Elysia()
                   data: {
                     type: 'object',
                     properties: {
-                      userId: { 
+                      userId: {
                         type: 'number',
                         example: 123,
                         description: 'Unique ID of the authenticated user',
                       },
                     },
                   },
-                  message: { 
+                  message: {
                     type: 'string',
                     example: 'User logged in successfully',
                   },
@@ -195,7 +195,7 @@ const authRouter: Elysia = new Elysia()
               schema: {
                 type: 'object',
                 properties: {
-                  error: { 
+                  error: {
                     type: 'string',
                     example: 'Missing required fields',
                   },
@@ -211,7 +211,7 @@ const authRouter: Elysia = new Elysia()
               schema: {
                 type: 'object',
                 properties: {
-                  error: { 
+                  error: {
                     type: 'string',
                     example: 'Wrong password',
                   },
@@ -227,7 +227,7 @@ const authRouter: Elysia = new Elysia()
               schema: {
                 type: 'object',
                 properties: {
-                  error: { 
+                  error: {
                     type: 'string',
                     example: 'An unexpected error occurred',
                   },
@@ -303,6 +303,13 @@ const authRouter: Elysia = new Elysia()
                 description: 'New refresh token for session renewal.',
               },
             },
+            'X-Session-Id': {
+              schema: {
+                type: 'string',
+                example: 'new-session-id-12345',
+                description: 'New session ID for the user session.',
+              },
+            },
           },
           content: {
             'application/json': {
@@ -367,7 +374,7 @@ const authRouter: Elysia = new Elysia()
           },
         },
       },
-    }
+    },
   })
   .post('/logout', handleUserLogout, {
     detail: {
@@ -491,7 +498,7 @@ const authRouter: Elysia = new Elysia()
           },
         },
       },
-    }
+    },
   });
 
 export default authRouter;
