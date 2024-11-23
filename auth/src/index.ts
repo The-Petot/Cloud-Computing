@@ -7,8 +7,9 @@ import { logger } from '@bogeychan/elysia-logger';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import swagger from '@elysiajs/swagger';
+import { config } from 'dotenv';
+config();
 const redis = await import('./database/redis').then((m) => m.default);
-
 const app = new Elysia({
   serve: {
     hostname:
@@ -19,12 +20,12 @@ const app = new Elysia({
     swagger({
       documentation: {
         info: {
-          title: 'Authentication Service',
+          title: 'Mindcraft Authentication Service',
           description: 'This is the authentication service for Mindcraft',
           version: '1.0.0',
         },
-
       },
+      path: '/docs',
     })
   )
   .use(jwt({ secret: getEnv('JWT_SECRET'), name: 'jwt' }))

@@ -48,27 +48,11 @@ const userService = {
     }
   },
   async getUserByEmail(email: string): Promise<
-    ServiceMethodReturnType<{
-      id: number;
-      password: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      totalScore: number;
-      currentRank: number;
-    }>
+    ServiceMethodReturnType<User>
   > {
     try {
       const [user] = await db
-        .select({
-          id: usersTable.id,
-          password: usersTable.password,
-          email: usersTable.email,
-          firstName: usersTable.firstName,
-          lastName: usersTable.lastName,
-          totalScore: usersTable.totalScore,
-          currentRank: usersTable.currentRank,
-        })
+        .select()
         .from(usersTable)
         .where(eq(usersTable.email, email));
 
@@ -82,29 +66,11 @@ const userService = {
     }
   },
   async getUserById(userId: number): Promise<
-    ServiceMethodReturnType<{
-      id: number;
-      password: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      totalScore: number;
-      currentRank: number;
-    }>
+    ServiceMethodReturnType<User>
   > {
     try {
       const [user] = await db
-        .select({
-          id: usersTable.id,
-          password: usersTable.password,
-          email: usersTable.email,
-          firstName: usersTable.firstName,
-          lastName: usersTable.lastName,
-          totalScore: usersTable.totalScore,
-          currentRank: usersTable.currentRank,
-          createdAt: usersTable.createdAt,
-          updatedAt: usersTable.updatedAt,
-        })
+        .select()
         .from(usersTable)
         .where(eq(usersTable.id, userId));
 
@@ -117,6 +83,44 @@ const userService = {
       return { error: 'An unexpected error occurred', statusCode: 500 };
     }
   },
+  async enableTwoFactorAuth(userId: number, secret: string): Promise<
+    ServiceMethodReturnType<{ userId: number }>
+  > {
+    try {
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set({ twoFactorEnabled: true, twoFactorSecret: secret })
+        .where(eq(usersTable.id, userId))
+        .returning({ userId: usersTable.id });
+
+      if (updatedUser === undefined) {
+        return { error: 'User not found', statusCode: 404 };
+      }
+
+      return { data: { userId: updatedUser.userId } };
+    } catch (error) {
+      return { error: 'An unexpected error occurred', statusCode: 500 };
+    }
+  },
+  async disableTwoFactorAuth(userId: number): Promise<
+    ServiceMethodReturnType<{ userId: number }>
+  > {
+    try {
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set({ twoFactorEnabled: false, twoFactorSecret: null })
+        .where(eq(usersTable.id, userId))
+        .returning({ userId: usersTable.id });
+
+      if (updatedUser === undefined) {
+        return { error: 'User not found', statusCode: 404 };
+      }
+
+      return { data: { userId: updatedUser.userId } };
+    } catch (error) {
+      return { error: 'An unexpected error occurred', statusCode: 500 };
+    }
+  }
 };
 
 export default userService;

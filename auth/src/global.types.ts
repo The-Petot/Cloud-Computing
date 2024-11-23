@@ -14,12 +14,17 @@ export type Jwt = {
 export type Redis = typeof redis;
 
 export type User = typeof usersTable.$inferInsert;
+export type UserInfo = Omit<User, ''>
 
 export type UserSessionData = {
-  password: string;
   email: string;
   firstName: string;
   lastName: string;
-  totalScore: number;
+  profileImgUrl: string;
+
   currentRank: number;
+  totalScore: number;
+
+  twoFactorEnabled: boolean;
+  notificationEnabled: boolean;
 }

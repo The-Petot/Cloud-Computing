@@ -17,12 +17,19 @@ TABLE DEFINITION
 
 export const usersTable = pgTable('users', {
   id: serial().primaryKey(),
+
   email: varchar({ length: 255 }).unique().notNull(),
   password: varchar({ length: 255 }).notNull(),
   firstName: varchar('first_name', { length: 255 }).notNull(),
   lastName: varchar('last_name', { length: 255 }).notNull(),
   totalScore: integer().notNull().default(0),
-  currentRank: integer('current_rank').notNull().default(0),
+  currentRank: integer('current_rank').notNull().default(-1),
+  profileImgUrl: text('profile_url'),
+  
+  twoFactorSecret: text('two_factor_secret'),
+  twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+  notificationEnabled: boolean('notification_enabled').notNull().default(true),
+
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -34,22 +41,17 @@ export const suggestionsTable = pgTable('suggestions', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-// export const refreshTokensTable = pgTable('refresh_tokens', {
-//   id: serial().primaryKey(),
-//   token: text().notNull(),
-//   userId: integer('user_id')
-//     .references(() => usersTable.id)
-//     .notNull(),
-//   createdAt: timestamp('created_at').notNull().defaultNow(),
-//   expiresAt: timestamp('expires_at').notNull(),
-// });
-
 export const challengesTable = pgTable('challenges', {
   id: serial().primaryKey(),
+
   title: varchar({ length: 255 }).notNull(),
-  description: text().notNull(),
+  description: text(),
+  summary: text(),
+
   authorId: integer('author_id').notNull(),
-  nQuestions: integer('n_questions').notNull(),
+  totalQuestions: integer('total_questions').notNull(),
+  timeMinutes: integer('time_minutes').notNull(),
+  
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -71,6 +73,7 @@ export const questionsTable = pgTable('questions', {
 export const answersTable = pgTable('answers', {
   id: serial().primaryKey(),
   answer: text().notNull(),
+  explanation: text().notNull(),
   questionId: integer('question_id').notNull(),
   correct: boolean().notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),

@@ -1,7 +1,6 @@
 import { InferHandler } from 'elysia';
 import app from '../index';
 import { User } from '../global.types';
-import { registerDto } from '../dtos/auth.dtos';
 
 interface JSONErrorResponse {
   error: string;
@@ -34,7 +33,7 @@ export type HandleUserLogin = InferHandler<
   typeof app,
   '/login',
   {
-    body: { email: string; password: string };
+    body: { email: string; password: string, token?: string };
     response: {
       200: JSONSuccessResponse<{ userId: number }>;
       400: JSONErrorResponse;
@@ -61,6 +60,34 @@ export type HandleUserLogout = InferHandler<
 export type HandleTokenRefresh = InferHandler<
   typeof app,
   '/refresh',
+  {
+    body: { userId: number };
+    response: {
+      200: JSONSuccessResponse<{}>;
+      400: JSONErrorResponse;
+      401: JSONErrorResponse;
+      500: JSONErrorResponse;
+    };
+  }
+>
+
+export type HandleEnableTwoFactorAuth = InferHandler<
+  typeof app,
+  '/enable-2fa',
+  {
+    body: { userId: number };
+    response: {
+      200: JSONSuccessResponse<{ qrCode: string }>;
+      400: JSONErrorResponse;
+      401: JSONErrorResponse;
+      500: JSONErrorResponse;
+    };
+  }
+>
+
+export type HandleDisableTwoFactorAuth = InferHandler<
+  typeof app,
+  '/disable-2fa',
   {
     body: { userId: number };
     response: {

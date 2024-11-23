@@ -1,5 +1,4 @@
-import { JWTPayloadSpec } from '@elysiajs/jwt';
-import { Jwt, Redis, UserSessionData } from './global.types';
+import { Jwt } from './global.types';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
@@ -7,6 +6,8 @@ import {
 import { ExtendedEnv } from './types';
 import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';
+import { GeneratedSecret, generateSecret, totp } from 'speakeasy';
+import QRcode from 'qrcode';
 
 export function getEnv(key: keyof ExtendedEnv): string {
   const value = process.env[key];
@@ -57,7 +58,7 @@ export async function isPasswordMatch(
 }
 
 export async function createSessionId(userId: number): Promise<string> {
-  const sessionId = await bcrypt.hash(`${String(userId)}:${v4()}`, 10);
+  const sessionId = await bcrypt.hash(`${String(userId)}:${v4()}`, 2);
   return sessionId;
 }
 
@@ -81,4 +82,55 @@ export async function generateRefreshToken(
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
   });
   return refreshToken;
+}
+
+export function generateTwoFactorSecret(): GeneratedSecret {
+  const secret = generateSecret({ name: 'Mindcraft' });
+  return secret;
+}
+
+type GenerateQRCodeSuccess = {
+  qrCode: string;
+}
+
+type GenerateQRCodeError = {
+  error: string;
+}
+
+type GenerateQRCodeResult = GenerateQRCodeSuccess | GenerateQRCodeError;
+
+export function isGenerateQRCodeSuccess(
+  result: GenerateQRCodeResult
+): result is GenerateQRCodeSuccess {
+  return (result as GenerateQRCodeSuccess).qrCode !== undefined;
+}
+
+export async function generateQRCode(
+  url: string
+): Promise<GenerateQRCodeResult> {
+  try {
+    const qrCode = await QRcode.toDataURL(url);
+    return {
+      qrCode,
+    };
+  } catch (error) {
+    console.error('ERR:QR: Unable to generate QR code', error);
+    return {
+      error: `Unable to generate QR code: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    };
+  }
+}
+
+export async function verifyTwoFactorToken(
+  secret: string,
+  token: string
+): Promise<boolean> {
+  const isTokenValid = totp.verify({
+    secret,
+    encoding: 'base32',
+    token,
+  });
+  return isTokenValid;
 }

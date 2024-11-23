@@ -4,6 +4,8 @@ import {
   handleUserLogin,
   handleTokenRefresh,
   handleUserLogout,
+  handleEnableTwoFactorAuth,
+  handleDisableTwoFactorAuth,
 } from '../controllers/auth.controller';
 
 const authRouter: Elysia = new Elysia()
@@ -131,6 +133,11 @@ const authRouter: Elysia = new Elysia()
                   type: 'string',
                   example: 'userPassword123',
                   description: 'Password associated with the user account',
+                },
+                token: {
+                  type: 'string',
+                  example: '123456',
+                  description: 'Two-factor authentication token (if enabled)',
                 },
               },
               required: ['email', 'password'],
@@ -483,6 +490,266 @@ const authRouter: Elysia = new Elysia()
         },
         500: {
           description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'An unexpected error occurred',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  .put('/enable-2fa', handleEnableTwoFactorAuth, {
+    detail: {
+      summary: 'Enable Two-Factor Authentication',
+      description:
+        'API endpoint to enable two-factor authentication for a user. Requires a valid session ID, refresh token, and access token.',
+      tags: ['Auth'],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                userId: {
+                  type: 'number',
+                  example: 123,
+                  description:
+                    'ID of the user enabling two-factor authentication.',
+                },
+              },
+              required: ['userId'],
+            },
+          },
+        },
+      },
+      parameters: [
+        {
+          in: 'header',
+          name: 'X-Session-Id',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'session-id-12345',
+          },
+          description: 'Session ID associated with the user session.',
+        },
+        {
+          in: 'header',
+          name: 'X-Refresh-Token',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI...',
+          },
+          description: 'Refresh token associated with the user session.',
+        },
+        {
+          in: 'header',
+          name: 'Authorization',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI...',
+          },
+          description: 'Access token for the user session.',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Two-factor authentication enabled successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: {
+                    type: 'string',
+                    example: 'Two factor auth enabled successfully',
+                  },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      qrCode: {
+                        type: 'string',
+                        example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
+                        description: 'Base64-encoded QR code for two-factor authentication',
+                      },
+                    },
+                  }
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: 'Validation error or missing required fields.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'Missing user id',
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: {
+          description: 'Unauthorized due to invalid or mismatched tokens.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'Invalid access token',
+                  },
+                },
+              },
+            },
+          },
+        },
+        500: {
+          description: 'Internal server error.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'An unexpected error occurred',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  .put('/disable-2fa', handleDisableTwoFactorAuth, {
+    detail: {
+      summary: 'Disable Two-Factor Authentication',
+      description:
+        'API endpoint to disable two-factor authentication for a user. Requires a valid session ID, refresh token, and access token.',
+      tags: ['Auth'],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                userId: {
+                  type: 'number',
+                  example: 123,
+                  description:
+                    'ID of the user disabling two-factor authentication.',
+                },
+              },
+              required: ['userId'],
+            },
+          },
+        },
+      },
+      parameters: [
+        {
+          in: 'header',
+          name: 'X-Session-Id',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'session-id-67890',
+          },
+          description: 'Session ID associated with the user session.',
+        },
+        {
+          in: 'header',
+          name: 'X-Refresh-Token',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          },
+          description: 'Refresh token associated with the user session.',
+        },
+        {
+          in: 'header',
+          name: 'Authorization',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          },
+          description: 'Access token for the user session.',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Two-factor authentication disabled successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: {
+                    type: 'string',
+                    example: 'Two factor auth disabled successfully',
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: 'Validation error or missing required fields.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'Missing user id',
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: {
+          description: 'Unauthorized due to invalid or mismatched tokens.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'Invalid access token',
+                  },
+                },
+              },
+            },
+          },
+        },
+        500: {
+          description: 'Internal server error.',
           content: {
             'application/json': {
               schema: {
