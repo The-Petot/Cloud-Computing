@@ -1,0 +1,21 @@
+{
+  "name": "auth-service-tests",
+  "version": "1.0.0",
+  "description": "Unit tests for the Mindcraft Authentication Service API using Jest and Supertest",
+  "main": "app.test.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "unit-test",
+    "jest",
+    "supertest",
+    "api-testing"
+  ],
+  "author": "M Arifin Syam",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.6.0",
+    "supertest": "^6.3.3"
+  }
+}
