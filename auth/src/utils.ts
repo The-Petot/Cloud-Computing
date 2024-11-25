@@ -6,7 +6,7 @@ import {
 import { ExtendedEnv } from './types';
 import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';
-import { GeneratedSecret, generateSecret, totp } from 'speakeasy';
+import speakeasy, { GeneratedSecret, generateSecret } from 'speakeasy';
 import QRcode from 'qrcode';
 
 export function getEnv(key: keyof ExtendedEnv): string {
@@ -85,9 +85,10 @@ export async function generateRefreshToken(
 }
 
 export function generateTwoFactorSecret(): GeneratedSecret {
-  const secret = generateSecret({ name: 'Mindcraft' });
+  const secret = speakeasy.generateSecret({ name: 'Mindcraft' });
   return secret;
 }
+
 
 type GenerateQRCodeSuccess = {
   qrCode: string;
@@ -127,7 +128,7 @@ export async function verifyTwoFactorToken(
   secret: string,
   token: string
 ): Promise<boolean> {
-  const isTokenValid = totp.verify({
+  const isTokenValid = speakeasy.totp.verify({
     secret,
     encoding: 'base32',
     token,
