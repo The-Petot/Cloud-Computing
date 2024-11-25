@@ -7,7 +7,7 @@ import { User } from '../global.types';
 const userService = {
   async create(
     user: User
-  ): Promise<ServiceMethodReturnType<{ userId: number }>> {
+  ): Promise<ServiceMethodReturnType<User>> {
     try {
       const previousUser = await db
         .select({ userId: usersTable.id })
@@ -21,15 +21,16 @@ const userService = {
       const [newUser] = await db
         .insert(usersTable)
         .values(user)
-        .returning({ userId: usersTable.id });
+        .returning();
 
       if (newUser === undefined) {
         return { error: 'Failed to create user', statusCode: 500 };
       }
 
-      return { data: { userId: newUser.userId } };
+      return { data: newUser };
     } catch (error) {
-      return { error: 'An unexpected error occurred', statusCode: 500 };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
     }
   },
   async getTotalusers(): Promise<
@@ -44,7 +45,8 @@ const userService = {
 
       return { data: { totalUser: users.length } };
     } catch (error) {
-      return { error: 'An unexpected error occurred', statusCode: 500 };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
     }
   },
   async getUserByEmail(email: string): Promise<
@@ -62,7 +64,8 @@ const userService = {
 
       return { data: user };
     } catch (error) {
-      return { error: 'An unexpected error occurred', statusCode: 500 };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
     }
   },
   async getUserById(userId: number): Promise<
@@ -80,7 +83,8 @@ const userService = {
 
       return { data: user };
     } catch (error) {
-      return { error: 'An unexpected error occurred', statusCode: 500 };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
     }
   },
   async enableTwoFactorAuth(userId: number, secret: string): Promise<
@@ -99,7 +103,8 @@ const userService = {
 
       return { data: { userId: updatedUser.userId } };
     } catch (error) {
-      return { error: 'An unexpected error occurred', statusCode: 500 };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
     }
   },
   async disableTwoFactorAuth(userId: number): Promise<
@@ -118,7 +123,8 @@ const userService = {
 
       return { data: { userId: updatedUser.userId } };
     } catch (error) {
-      return { error: 'An unexpected error occurred', statusCode: 500 };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
     }
   }
 };

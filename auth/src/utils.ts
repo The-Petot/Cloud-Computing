@@ -1,4 +1,4 @@
-import { Jwt } from './global.types';
+import { Jwt, Redis, User } from './global.types';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
@@ -6,7 +6,7 @@ import {
 import { ExtendedEnv } from './types';
 import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';
-import speakeasy, { GeneratedSecret, generateSecret } from 'speakeasy';
+import speakeasy, { GeneratedSecret } from 'speakeasy';
 import QRcode from 'qrcode';
 
 export function getEnv(key: keyof ExtendedEnv): string {
@@ -57,17 +57,17 @@ export async function isPasswordMatch(
   }
 }
 
-export async function createSessionId(userId: number): Promise<string> {
-  const sessionId = await bcrypt.hash(`${String(userId)}:${v4()}`, 2);
+export function createSessionId(userId: number): string {
+  const sessionId = `${String(userId)}:${v4()}`
   return sessionId;
 }
 
 export async function generateAccessToken(
   jwt: Jwt,
-  userId: number
+  sessionId: string
 ): Promise<string> {
   const accessToken = await jwt.sign({
-    userId,
+    sessionId,
     exp: Math.floor(Date.now() / 1000) + 60 * 60,
   });
   return accessToken;
@@ -75,10 +75,10 @@ export async function generateAccessToken(
 
 export async function generateRefreshToken(
   jwt: Jwt,
-  userId: number
+  sessionId: string
 ): Promise<string> {
   const refreshToken = await jwt.sign({
-    userId,
+    sessionId,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
   });
   return refreshToken;
@@ -136,3 +136,55 @@ export async function verifyTwoFactorToken(
   return isTokenValid;
 }
 
+export async function setSessionId<T>(redis: Redis, sessionId: string, data: T): Promise<boolean> {
+  try {
+    await redis.set(sessionId, JSON.stringify(data));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+export async function setRefreshTokenOnRedis(
+  redis: Redis,
+  refreshToken: string,
+  userId: number
+): Promise<boolean> {
+  try {
+    await redis.set(`refresh-token:${userId}`, refreshToken);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+
+type GetSessionDataSuccess = User
+type GetSessionDataFailed = {
+  error: string;
+  statusCode: number
+}
+type GetSessionDataResult = GetSessionDataSuccess | GetSessionDataFailed
+
+export function isGetSessionDataSuccess(
+  result: GetSessionDataResult
+): result is GetSessionDataSuccess {
+  return (result as GetSessionDataSuccess).email !== undefined;
+}
+
+export async function getSessionData(redis: Redis, sessionId: string): Promise<GetSessionDataResult> {
+  try {
+    const data = await redis.get(sessionId);
+    if (!data) {
+      return { error: 'Session not found', statusCode: 401 };
+    }
+    return JSON.parse(data);
+  } catch (error) {
+    return {
+      error: `Unable to get session data: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+      statusCode: 500,
+    };
+  }
+}

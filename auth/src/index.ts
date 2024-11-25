@@ -44,6 +44,16 @@ const app = new Elysia({
   .decorate('redis', redis)
   .decorate('bcrypt', bcrypt)
   .decorate('uuid', uuidv4)
+  .derive(({ request }) => {
+      const accessToken = request.headers.get('Authorization')?.split(' ')[1] ?? null;
+      const refreshToken = request.headers.get('X-Refresh-Token') ?? null;
+      const sessionId = request.headers.get('X-Session-Id') ?? null;
+      return {
+        accessToken,
+        refreshToken,
+        sessionId,
+      }
+  })
   .use(authRouter)
   .listen(
     getEnv('NODE_ENV') === 'production' ? parseInt(getEnv('PORT'), 10) : 3001

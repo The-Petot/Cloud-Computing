@@ -30,18 +30,17 @@ const authRouter: Elysia = new Elysia()
                 password: {
                   type: 'string',
                   example: 'strongPassword123',
-                  description:
-                    'Password for the new user. Must be at least 8 characters long.',
+                  description: 'Password for the new user. Must be at least 8 characters long.',
                 },
                 firstName: {
                   type: 'string',
                   example: 'John',
-                  description: 'First name of the user',
+                  description: 'First name of the new user',
                 },
                 lastName: {
                   type: 'string',
                   example: 'Doe',
-                  description: 'Last name of the user',
+                  description: 'Last name of the new user',
                 },
               },
               required: ['email', 'password', 'firstName', 'lastName'],
@@ -66,12 +65,14 @@ const authRouter: Elysia = new Elysia()
                         description: 'Unique ID of the newly created user',
                       },
                     },
+                    required: ['userId'],
                   },
                   message: {
                     type: 'string',
                     example: 'User registered successfully',
                   },
                 },
+                required: ['data', 'message'],
               },
             },
           },
@@ -85,9 +86,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Missing required fields',
+                    example: 'Email is missing.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -104,6 +106,7 @@ const authRouter: Elysia = new Elysia()
                     example: 'An unexpected error occurred',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -162,12 +165,14 @@ const authRouter: Elysia = new Elysia()
                         description: 'Unique ID of the authenticated user',
                       },
                     },
+                    required: ['userId'],
                   },
                   message: {
                     type: 'string',
                     example: 'User logged in successfully',
                   },
                 },
+                required: ['data', 'message'],
               },
             },
           },
@@ -193,6 +198,7 @@ const authRouter: Elysia = new Elysia()
                 description: 'Unique session ID for the user',
               },
             },
+        
           },
         },
         400: {
@@ -204,9 +210,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Missing required fields',
+                    example: 'Required fields: email and password are missing.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -220,9 +227,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Wrong password',
+                    example: 'Incorrect password.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -239,6 +247,7 @@ const authRouter: Elysia = new Elysia()
                     example: 'An unexpected error occurred',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -249,8 +258,7 @@ const authRouter: Elysia = new Elysia()
   .post('/refresh', handleTokenRefresh, {
     detail: {
       summary: 'Token Refresh',
-      description:
-        'API endpoint to refresh access and refresh tokens. Requires a valid refresh token and session ID.',
+      description: 'API endpoint to refresh access and refresh tokens. Requires a valid refresh token and session ID.',
       tags: ['Auth'],
       requestBody: {
         required: true,
@@ -273,23 +281,23 @@ const authRouter: Elysia = new Elysia()
       parameters: [
         {
           in: 'header',
-          name: 'X-Refresh-Token',
-          required: true,
-          schema: {
-            type: 'string',
-            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI...',
-          },
-          description: 'Refresh token associated with the user session.',
-        },
-        {
-          in: 'header',
           name: 'X-Session-Id',
           required: true,
           schema: {
             type: 'string',
             example: 'session-id-12345',
+            description: 'Session ID associated with the refresh token.',
           },
-          description: 'Session ID associated with the refresh token.',
+        },
+        {
+          in: 'header',
+          name: 'X-Refresh-Token',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI...',
+            description: 'Refresh token associated with the user session.',
+          },
         },
       ],
       responses: {
@@ -328,6 +336,7 @@ const authRouter: Elysia = new Elysia()
                     example: 'Token refreshed successfully',
                   },
                 },
+                required: ['message'],
               },
             },
           },
@@ -341,9 +350,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Missing session id',
+                    example: 'User ID is missing.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -357,9 +367,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Invalid refresh token',
+                    example: 'Invalid refresh token.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -376,6 +387,7 @@ const authRouter: Elysia = new Elysia()
                     example: 'An unexpected error occurred',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -386,8 +398,7 @@ const authRouter: Elysia = new Elysia()
   .post('/logout', handleUserLogout, {
     detail: {
       summary: 'User Logout',
-      description:
-        'API endpoint to log out a user. Requires valid session ID, refresh token, and access token.',
+      description: 'API endpoint to log out a user. Requires valid session ID, refresh token, and access token.',
       tags: ['Auth'],
       requestBody: {
         required: true,
@@ -415,8 +426,8 @@ const authRouter: Elysia = new Elysia()
           schema: {
             type: 'string',
             example: 'session-id-12345',
+            description: 'Session ID associated with the user session.',
           },
-          description: 'Session ID associated with the user session.',
         },
         {
           in: 'header',
@@ -425,8 +436,8 @@ const authRouter: Elysia = new Elysia()
           schema: {
             type: 'string',
             example: 'eyJhbGciOiJIUzI1NiIsInR5cCI...',
+            description: 'Refresh token associated with the user session.',
           },
-          description: 'Refresh token associated with the user session.',
         },
         {
           in: 'header',
@@ -435,8 +446,8 @@ const authRouter: Elysia = new Elysia()
           schema: {
             type: 'string',
             example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI...',
+            description: 'Access token for the user session.',
           },
-          description: 'Access token for the user session.',
         },
       ],
       responses: {
@@ -452,6 +463,7 @@ const authRouter: Elysia = new Elysia()
                     example: 'User logged out successfully',
                   },
                 },
+                required: ['message'],
               },
             },
           },
@@ -465,9 +477,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Missing session id',
+                    example: 'Session ID is missing.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -481,9 +494,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Invalid access token',
+                    example: 'Invalid access token.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -500,6 +514,7 @@ const authRouter: Elysia = new Elysia()
                     example: 'An unexpected error occurred',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -510,8 +525,7 @@ const authRouter: Elysia = new Elysia()
   .put('/enable-2fa', handleEnableTwoFactorAuth, {
     detail: {
       summary: 'Enable Two-Factor Authentication',
-      description:
-        'API endpoint to enable two-factor authentication for a user. Requires a valid session ID, refresh token, and access token.',
+      description: 'API endpoint to enable two-factor authentication for a user. Requires a valid session ID, refresh token, and access token.',
       tags: ['Auth'],
       requestBody: {
         required: true,
@@ -523,143 +537,7 @@ const authRouter: Elysia = new Elysia()
                 userId: {
                   type: 'number',
                   example: 123,
-                  description:
-                    'ID of the user enabling two-factor authentication.',
-                },
-              },
-              required: ['userId'],
-            },
-          },
-        },
-      },
-      parameters: [
-        {
-          in: 'header',
-          name: 'X-Session-Id',
-          required: true,
-          schema: {
-            type: 'string',
-            example: 'session-id-12345',
-          },
-          description: 'Session ID associated with the user session.',
-        },
-        {
-          in: 'header',
-          name: 'X-Refresh-Token',
-          required: true,
-          schema: {
-            type: 'string',
-            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI...',
-          },
-          description: 'Refresh token associated with the user session.',
-        },
-        {
-          in: 'header',
-          name: 'Authorization',
-          required: true,
-          schema: {
-            type: 'string',
-            example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI...',
-          },
-          description: 'Access token for the user session.',
-        },
-      ],
-      responses: {
-        200: {
-          description: 'Two-factor authentication enabled successfully.',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  message: {
-                    type: 'string',
-                    example: 'Two factor auth enabled successfully',
-                  },
-                  data: {
-                    type: 'object',
-                    properties: {
-                      qrCode: {
-                        type: 'string',
-                        example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
-                        description: 'Base64-encoded QR code for two-factor authentication',
-                      },
-                    },
-                  }
-                },
-              },
-            },
-          },
-        },
-        400: {
-          description: 'Validation error or missing required fields.',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  error: {
-                    type: 'string',
-                    example: 'Missing user id',
-                  },
-                },
-              },
-            },
-          },
-        },
-        401: {
-          description: 'Unauthorized due to invalid or mismatched tokens.',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  error: {
-                    type: 'string',
-                    example: 'Invalid access token',
-                  },
-                },
-              },
-            },
-          },
-        },
-        500: {
-          description: 'Internal server error.',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  error: {
-                    type: 'string',
-                    example: 'An unexpected error occurred',
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
-  .put('/disable-2fa', handleDisableTwoFactorAuth, {
-    detail: {
-      summary: 'Disable Two-Factor Authentication',
-      description:
-        'API endpoint to disable two-factor authentication for a user. Requires a valid session ID, refresh token, and access token.',
-      tags: ['Auth'],
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                userId: {
-                  type: 'number',
-                  example: 123,
-                  description:
-                    'ID of the user disabling two-factor authentication.',
+                  description: 'ID of the user enabling two-factor authentication.',
                 },
               },
               required: ['userId'],
@@ -675,8 +553,8 @@ const authRouter: Elysia = new Elysia()
           schema: {
             type: 'string',
             example: 'session-id-67890',
+            description: 'Session ID associated with the user session.',
           },
-          description: 'Session ID associated with the user session.',
         },
         {
           in: 'header',
@@ -685,8 +563,8 @@ const authRouter: Elysia = new Elysia()
           schema: {
             type: 'string',
             example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            description: 'Refresh token associated with the user session.',
           },
-          description: 'Refresh token associated with the user session.',
         },
         {
           in: 'header',
@@ -695,13 +573,13 @@ const authRouter: Elysia = new Elysia()
           schema: {
             type: 'string',
             example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            description: 'Access token for the user session.',
           },
-          description: 'Access token for the user session.',
         },
       ],
       responses: {
         200: {
-          description: 'Two-factor authentication disabled successfully.',
+          description: 'Two-factor authentication enabled successfully.',
           content: {
             'application/json': {
               schema: {
@@ -709,9 +587,21 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   message: {
                     type: 'string',
-                    example: 'Two factor auth disabled successfully',
+                    example: 'Two-factor authentication enabled successfully.',
+                  },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      qrCode: {
+                        type: 'string',
+                        example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
+                        description: 'Base64-encoded QR code for two-factor authentication',
+                      },
+                    },
+                    required: ['qrCode'],
                   },
                 },
+                required: ['message', 'data'],
               },
             },
           },
@@ -725,9 +615,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Missing user id',
+                    example: 'User ID is missing.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -741,9 +632,10 @@ const authRouter: Elysia = new Elysia()
                 properties: {
                   error: {
                     type: 'string',
-                    example: 'Invalid access token',
+                    example: 'Invalid access token.',
                   },
                 },
+                required: ['error'],
               },
             },
           },
@@ -760,6 +652,134 @@ const authRouter: Elysia = new Elysia()
                     example: 'An unexpected error occurred',
                   },
                 },
+                required: ['error'],
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  .put('/disable-2fa', handleDisableTwoFactorAuth, {
+    detail: {
+      summary: 'Disable Two-Factor Authentication',
+      description: 'API endpoint to disable two-factor authentication for a user. Requires a valid session ID, refresh token, and access token.',
+      tags: ['Auth'],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                userId: {
+                  type: 'number',
+                  example: 123,
+                  description: 'ID of the user disabling two-factor authentication.',
+                },
+              },
+              required: ['userId'],
+            },
+          },
+        },
+      },
+      parameters: [
+        {
+          in: 'header',
+          name: 'X-Session-Id',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'session-id-67890',
+            description: 'Session ID associated with the user session.',
+          },
+        },
+        {
+          in: 'header',
+          name: 'X-Refresh-Token',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            description: 'Refresh token associated with the user session.',
+          },
+        },
+        {
+          in: 'header',
+          name: 'Authorization',
+          required: true,
+          schema: {
+            type: 'string',
+            example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            description: 'Access token for the user session.',
+          },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Two-factor authentication disabled successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: {
+                    type: 'string',
+                    example: 'Two-factor authentication disabled successfully.',
+                  },
+                },
+                required: ['message'],
+              },
+            },
+          },
+        },
+        400: {
+          description: 'Validation error or missing required fields.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'User ID is missing.',
+                  },
+                },
+                required: ['error'],
+              },
+            },
+          },
+        },
+        401: {
+          description: 'Unauthorized due to invalid or mismatched tokens.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'Invalid access token.',
+                  },
+                },
+                required: ['error'],
+              },
+            },
+          },
+        },
+        500: {
+          description: 'Internal server error.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'An unexpected error occurred',
+                  },
+                },
+                required: ['error'],
               },
             },
           },
