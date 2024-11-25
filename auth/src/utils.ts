@@ -136,6 +136,3 @@ export async function verifyTwoFactorToken(
   return isTokenValid;
 }
 
-
-const secret = generateTwoFactorSecret().base32;
-console.log((await verifyTwoFactorToken(secret, "")));

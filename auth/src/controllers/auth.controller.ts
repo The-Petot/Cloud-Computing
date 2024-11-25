@@ -271,7 +271,19 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
   const newSessionId = await createSessionId(userId);
 
   await redis.del(`refresh-token:${sessionId}`);
+  await redis.del(sessionId);
+
   await redis.set(`refresh-token:${newSessionId}`, newRefreshToken);
+  await redis.hSet(newSessionId, {
+    firstName: user.data.firstName,
+    lastName: user.data.lastName,
+    email: user.data.email,
+    totalScore: String(user.data.totalScore),
+    currentRank: String(user.data.currentRank),
+    notificationEnabled: String(user.data.notificationEnabled),
+    profileImgUrl: user.data.profileImgUrl!,
+    twoFactorEnabled: String(user.data.twoFactorEnabled),
+  })
 
   set.status = 200;
   set.headers['authorization'] = `Bearer ${accessToken}`;
