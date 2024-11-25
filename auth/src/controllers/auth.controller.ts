@@ -175,7 +175,7 @@ export const handleUserLogin: HandleUserLogin = async ({
     };
   }
 
-  if (user.data.twoFactorEnabled && !verifyTwoFactorToken(user.data.twoFactorSecret!, token!)) {
+  if (user.data.twoFactorEnabled && !(await verifyTwoFactorToken(user.data.twoFactorSecret!, token!))) {
     set.status = 401;
     return {
       error: 'Invalid two factor token',
@@ -538,3 +538,4 @@ export const handleDisableTwoFactorAuth: HandleDisableTwoFactorAuth = async ({ b
     message: 'Two factor auth disabled successfully',
   };
 }
+
