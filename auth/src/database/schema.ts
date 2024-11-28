@@ -47,12 +47,14 @@ export const challengesTable = pgTable('challenges', {
   title: varchar({ length: 255 }).notNull(),
   description: text(),
   summary: text(),
+  tags: text().notNull(),
 
   authorId: integer('author_id').notNull(),
   totalQuestions: integer('total_questions').notNull(),
-  timeMinutes: integer('time_minutes').notNull(),
+  timeSeconds: integer('time_seconds').notNull(),
   
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const participantsTable = pgTable('participants', {
@@ -98,20 +100,6 @@ export const suggestionsUsersRelation = relations(
     }),
   })
 );
-
-// export const usersRefreshTokensRelation = relations(usersTable, ({ one }) => ({
-//   refreshToken: one(refreshTokensTable),
-// }));
-
-// export const refreshTokensUsersRelation = relations(
-//   refreshTokensTable,
-//   ({ one }) => ({
-//     user: one(usersTable, {
-//       fields: [refreshTokensTable.userId],
-//       references: [usersTable.id],
-//     }),
-//   })
-// );
 
 export const usersChallengesRelation = relations(usersTable, ({ many }) => ({
   challenges: many(challengesTable),

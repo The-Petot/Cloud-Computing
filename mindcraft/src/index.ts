@@ -44,8 +44,7 @@ const app = new Elysia({
   .decorate('redis', redis)
   .decorate('bcrypt', bcrypt)
   .decorate('uuid', uuidv4)
-  .derive(({ request, set }) => {
-    set.headers['content-type'] = 'application/json';
+  .derive(({ request }) => {
     const accessToken = request.headers.get('Authorization')?.split(' ')[1] ?? null;
     const refreshToken = request.headers.get('X-Refresh-Token') ?? null;
     const sessionId = request.headers.get('X-Session-Id') ?? null;

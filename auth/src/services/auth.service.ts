@@ -1,132 +1,109 @@
 import { eq } from 'drizzle-orm';
 import db from '../database/db';
 import { usersTable } from '../database/schema';
-import { ServiceMethodReturnType } from './service.type';
-import { User } from '../global.types';
+import { ServiceMethodReturnType } from '../types/service.type';
+import { User } from '../types/global.types';
 
 const userService = {
-  async create(
-    user: User
-  ): Promise<ServiceMethodReturnType<User>> {
+  async create(user: User): Promise<ServiceMethodReturnType<User>> {
     try {
-      const previousUser = await db
+      const [existingUser] = await db
         .select({ userId: usersTable.id })
         .from(usersTable)
         .where(eq(usersTable.email, user.email));
 
-      if (previousUser.length > 0) {
-        return { error: 'User already exists', statusCode: 409 };
-      }
+      if (existingUser) return createError(409, 'User already exists');
 
-      const [newUser] = await db
-        .insert(usersTable)
-        .values(user)
-        .returning();
+      const [newUser] = await db.insert(usersTable).values(user).returning();
 
-      if (newUser === undefined) {
-        return { error: 'Failed to create user', statusCode: 500 };
-      }
-
-      return { data: newUser };
+      return newUser
+        ? { data: newUser }
+        : createError(500, 'Error creating user');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
+      return handleDbError(error);
     }
   },
-  async getTotalusers(): Promise<
+
+  async getTotalUsers(): Promise<
     ServiceMethodReturnType<{ totalUser: number }>
   > {
     try {
-      const users = await db.select().from(usersTable);
+      const userCount = await db.select().from(usersTable);
 
-      if (users.length === 0) {
-        return { data: { totalUser: 0 } };
-      }
-
-      return { data: { totalUser: users.length } };
+      return { data: { totalUser: userCount.length } };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
+      return handleDbError(error);
     }
   },
-  async getUserByEmail(email: string): Promise<
-    ServiceMethodReturnType<User>
-  > {
+
+  async getUserByEmail(email: string): Promise<ServiceMethodReturnType<User>> {
     try {
       const [user] = await db
         .select()
         .from(usersTable)
         .where(eq(usersTable.email, email));
 
-      if (user === undefined) {
-        return { error: 'User not found', statusCode: 404 };
-      }
-
-      return { data: user };
+      return user ? { data: user } : createError(404, 'User not found');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
+      return handleDbError(error);
     }
   },
-  async getUserById(userId: number): Promise<
-    ServiceMethodReturnType<User>
-  > {
+
+  async getUserById(userId: number): Promise<ServiceMethodReturnType<User>> {
     try {
       const [user] = await db
         .select()
         .from(usersTable)
         .where(eq(usersTable.id, userId));
 
-      if (user === undefined) {
-        return { error: 'User not found', statusCode: 404 };
-      }
-
-      return { data: user };
+      return user ? { data: user } : createError(404, 'User not found');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
+      return handleDbError(error);
     }
   },
-  async enableTwoFactorAuth(userId: number, secret: string): Promise<
-    ServiceMethodReturnType<{ userId: number }>
-  > {
+
+  async toggleTwoFactorAuth(
+    userId: number,
+    enable: boolean,
+    secret?: string
+  ): Promise<ServiceMethodReturnType<{ userId: number }>> {
     try {
+      const updateFields = enable
+        ? { twoFactorEnabled: true, twoFactorSecret: secret }
+        : { twoFactorEnabled: false, twoFactorSecret: null };
+
       const [updatedUser] = await db
         .update(usersTable)
-        .set({ twoFactorEnabled: true, twoFactorSecret: secret })
+        .set(updateFields)
         .where(eq(usersTable.id, userId))
         .returning({ userId: usersTable.id });
 
-      if (updatedUser === undefined) {
-        return { error: 'User not found', statusCode: 404 };
-      }
-
-      return { data: { userId: updatedUser.userId } };
+      return updatedUser
+        ? { data: { userId: updatedUser.userId } }
+        : createError(404, 'User not found');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
+      return handleDbError(error);
     }
   },
-  async disableTwoFactorAuth(userId: number): Promise<
-    ServiceMethodReturnType<{ userId: number }>
-  > {
-    try {
-      const [updatedUser] = await db
-        .update(usersTable)
-        .set({ twoFactorEnabled: false, twoFactorSecret: null })
-        .where(eq(usersTable.id, userId))
-        .returning({ userId: usersTable.id });
-
-      if (updatedUser === undefined) {
-        return { error: 'User not found', statusCode: 404 };
-      }
-
-      return { data: { userId: updatedUser.userId } };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { error: `An unexpected error occurred: ${errorMessage}`, statusCode: 500 };
-    }
-  }
 };
+
+// Utility Functions
+const createError = (statusCode: number, message: string) => ({
+  errors: [{ messages: [message] }],
+  statusCode,
+});
+
+const handleDbError = (error: unknown) => ({
+  errors: [
+    {
+      messages: [
+        `An unexpected error occurred: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      ],
+    },
+  ],
+  statusCode: 500,
+});
 
 export default userService;

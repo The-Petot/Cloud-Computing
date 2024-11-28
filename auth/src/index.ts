@@ -1,4 +1,4 @@
-import { Elysia, t } from 'elysia';
+import { Elysia } from 'elysia';
 import { getEnv } from './utils';
 import authRouter from './routes/auth.route';
 import { jwt } from '@elysiajs/jwt';
@@ -45,20 +45,22 @@ const app = new Elysia({
   .decorate('bcrypt', bcrypt)
   .decorate('uuid', uuidv4)
   .derive(({ request }) => {
-      const accessToken = request.headers.get('Authorization')?.split(' ')[1] ?? null;
-      const refreshToken = request.headers.get('X-Refresh-Token') ?? null;
-      const sessionId = request.headers.get('X-Session-Id') ?? null;
-      return {
-        accessToken,
-        refreshToken,
-        sessionId,
-      }
+    const accessToken =
+      request.headers.get('Authorization')?.split(' ')[1] ?? null;
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? null;
+    const sessionId = request.headers.get('X-Session-Id') ?? null;
+    return {
+      accessToken,
+      refreshToken,
+      sessionId,
+    };
   })
   .use(authRouter)
   .listen(
-    getEnv('NODE_ENV') === 'production' ? parseInt(getEnv('PORT'), 10) : 3001
+    getEnv('NODE_ENV') === 'production' ? parseInt(getEnv('PORT'), 10) : 3000,
+    () => {
+      console.log(`Server is running on port: ${getEnv('PORT')}`);
+    }
   );
-
-console.log(`Server is running at ${app.server?.hostname}:${app.server?.port}`);
 
 export default app;

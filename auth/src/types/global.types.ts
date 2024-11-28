@@ -1,6 +1,6 @@
 import { JWTPayloadSpec } from '@elysiajs/jwt';
-import redis from './database/redis';
-import { usersTable } from './database/schema';
+import redis from '../database/redis';
+import { usersTable } from '../database/schema';
 
 export type Jwt = {
   readonly sign: (
@@ -14,7 +14,6 @@ export type Jwt = {
 export type Redis = typeof redis;
 
 export type User = typeof usersTable.$inferInsert;
-export type UserInfo = Omit<User, ''>
 
 export type UserSessionData = {
   email: string;
@@ -28,3 +27,9 @@ export type UserSessionData = {
   twoFactorEnabled: boolean;
   notificationEnabled: boolean;
 }
+
+
+export type BaseError = {
+  messages: string[];
+  field?: string;
+}[];

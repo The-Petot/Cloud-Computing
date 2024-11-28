@@ -15,7 +15,6 @@ export interface JSONErrorResponse {
   errors: {
     messages: string[];
     field?: string;
-    header?: string;
   }[];
 }
 

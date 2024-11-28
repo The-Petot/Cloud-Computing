@@ -1,4 +1,4 @@
-import { User } from '../global.types';
+import { BaseError, User } from '../types/global.types';
 import userService from '../services/auth.service';
 import {
   isEmailValid,
@@ -17,208 +17,201 @@ import {
   setSessionId,
   getSessionData,
   isGetSessionDataSuccess,
+  setFieldError,
+  setError,
+  verifyJwtToken,
+  isVerifyJwtTokenSuccess,
 } from '../utils';
 import {
   HandleTokenRefresh,
   HandleUserLogin,
   HandleUserRegister,
   HandleUserLogout,
-  HandleEnableTwoFactorAuth,
-  HandleDisableTwoFactorAuth,
-} from './controller.type';
+  HandleGoogleOAuth,
+  HandleToggleTwoFactor,
+} from '../types/controller.type';
 
 export const handleUserRegister: HandleUserRegister = async ({ body, set }) => {
-  if (!body) {
-    set.status = 400;
-    return {
-      error: 'Request body is missing.',
-    };
-  }
-
-  let { email, password, lastName, firstName } = body;
   set.headers['content-type'] = 'application/json';
-  if (!email) {
-    set.status = 400;
-    return {
-      error: 'Email is missing.',
-    };
+  set.headers['accept'] = 'application/json';
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
+
+  const { email, password, firstName, lastName } = body;
+  const errors: BaseError = [];
+  const validations = [
+    { field: 'email', value: email, errorMessage: 'Email is missing.' },
+    {
+      field: 'password',
+      value: password,
+      errorMessage: 'Password is missing.',
+    },
+    {
+      field: 'firstName',
+      value: firstName,
+      errorMessage: 'First name is missing.',
+    },
+    {
+      field: 'lastName',
+      value: lastName,
+      errorMessage: 'Last name is missing.',
+    },
+  ];
+
+  for (const { field, value, errorMessage } of validations) {
+    if (!value?.trim()) errors.push({ messages: [errorMessage], field });
   }
 
-  if (!password) {
-    set.status = 400;
-    return {
-      error: 'Password is missing.',
-    };
+  if (errors.length > 0) return setError(set, 400, errors, null);
+
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
+  const trimmedFirstName = firstName.trim();
+  const trimmedLastName = lastName.trim();
+
+  if (!isEmailValid(trimmedEmail))
+    return setFieldError(set, 400, 'email', ['Email format is invalid.']);
+
+  if (!isPasswordValid(trimmedPassword))
+    return setFieldError(set, 400, 'password', [
+      'Password must be at least 8 characters long.',
+    ]);
+
+  const totalUsersResult = await userService.getTotalUsers();
+  if (!isServiceMethodSuccess<{ totalUser: number }>(totalUsersResult)) {
+    return setError(
+      set,
+      totalUsersResult.statusCode,
+      totalUsersResult.errors,
+      null
+    );
   }
 
-  if (!lastName) {
-    set.status = 400;
-    return {
-      error: 'Last name is missing.',
-    };
-  }
-
-  if (!firstName) {
-    set.status = 400;
-    return {
-      error: 'First name is missing.',
-    };
-  }
-
-  email = email.trim();
-  password = password.trim();
-  lastName = lastName.trim();
-  firstName = firstName.trim();
-
-  if (!isPasswordValid(password)) {
-    set.status = 400;
-    return {
-      error: 'Password must be at least 8 characters long.',
-    };
-  }
-
-  if (!isEmailValid(email)) {
-    set.status = 400;
-    return {
-      error: 'Email format is invalid.',
-    };
-  }
-
-  const getTotalUsers = await userService.getTotalusers();
-  if (!isServiceMethodSuccess<{ totalUser: number }>(getTotalUsers)) {
-    set.status = getTotalUsers.statusCode;
-    return {
-      error: `Failed to retrieve total users: ${getTotalUsers.error}`,
-    };
-  }
-
-  const newUserData: User = {
-    email,
-    firstName,
-    lastName,
-    password: await hashPassword(password.trim()),
+  const totalUsers = totalUsersResult.data.totalUser;
+  const newUser: User = {
+    email: trimmedEmail,
+    password: await hashPassword(trimmedPassword),
+    firstName: trimmedFirstName,
+    lastName: trimmedLastName,
     totalScore: 0,
-    currentRank: getTotalUsers.data.totalUser + 1,
+    currentRank: totalUsers + 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     notificationEnabled: false,
     twoFactorEnabled: false,
-    profileImgUrl: `https://avatar.iran.liara.run/username?username=${firstName}+${lastName}`,
+    profileImgUrl: `https://avatar.iran.liara.run/username?username=${trimmedFirstName[0]}+${trimmedLastName[0]}`,
   };
 
-  const result = await userService.create(newUserData);
-  if (!isServiceMethodSuccess<User>(result)) {
-    set.status = result.statusCode;
-    return {
-      error: `User creation failed: ${result.error}`,
-    };
+  const createUserResult = await userService.create(newUser);
+  if (!isServiceMethodSuccess<User>(createUserResult)) {
+    return setError(
+      set,
+      createUserResult.statusCode,
+      createUserResult.errors,
+      null
+    );
   }
 
   set.status = 201;
   return {
-    data: { userId: result.data.id! },
+    success: true,
+    data: { userId: createUserResult.data.id! },
     message: 'User registered successfully.',
+    links: {
+      self: `/users/${createUserResult.data.id}`,
+      login: '/auth/login',
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
   };
 };
 
 export const handleUserLogin: HandleUserLogin = async ({
-  jwt,
   body,
   set,
   redis,
 }) => {
-  if (!body) {
-    set.status = 400;
-    return {
-      error: 'Request body is missing.',
-    };
-  }
-
-  let { email, password, token } = body;
   set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
 
-  if (!email || !password) {
-    set.status = 400;
-    return {
-      error: 'Required fields: email and password are missing.',
-    };
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
+
+  const { email, password, token } = body;
+  const erros: BaseError = [];
+  const validations = [
+    { field: 'email', value: email, errorMessage: 'Email is missing.' },
+    {
+      field: 'password',
+      value: password,
+      errorMessage: 'Password is missing.',
+    },
+  ];
+
+  for (const { field, value, errorMessage } of validations) {
+    if (!value?.trim()) erros.push({ messages: [errorMessage], field });
   }
 
-  email = email.trim();
-  password = password.trim();
+  if (erros.length > 0) return setError(set, 400, erros, null);
 
-  if (!isPasswordValid(password)) {
-    set.status = 400;
-    return {
-      error: 'Password must be at least 8 characters long.',
-    };
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
+
+  if (!isEmailValid(trimmedEmail))
+    return setFieldError(set, 400, 'email', ['Email format is invalid.']);
+
+  if (!isPasswordValid(trimmedPassword))
+    return setFieldError(set, 400, 'password', [
+      'Password must be at least 8 characters long.',
+    ]);
+
+  const userResult = await userService.getUserByEmail(trimmedEmail);
+  if (!isServiceMethodSuccess<User>(userResult)) {
+    return setError(set, userResult.statusCode, userResult.errors, null);
   }
 
-  if (!isEmailValid(email)) {
-    set.status = 400;
-    return {
-      error: 'Email format is invalid.',
-    };
-  }
+  const user = userResult.data;
 
-  const user = await userService.getUserByEmail(email);
-  if (!isServiceMethodSuccess<User>(user)) {
-    set.status = user.statusCode;
-    return {
-      error: `User retrieval failed: ${user.error}`,
-    };
-  }
+  if (user.twoFactorEnabled && !token)
+    return setFieldError(set, 400, 'token', [
+      'Two-factor authentication token is missing.',
+    ]);
 
-  if (user.data.twoFactorEnabled && !token) {
-    set.status = 400;
-    return {
-      error: 'Two-factor authentication token is missing.',
-    };
-  }
-
-  if (!(await isPasswordMatch(password, user.data.password))) {
-    set.status = 401;
-    return {
-      error: 'Incorrect password.',
-    };
-  }
+  if (!(await isPasswordMatch(trimmedPassword, user.password)))
+    return setFieldError(set, 401, 'password', ['Incorrect password.']);
 
   if (
-    user.data.twoFactorEnabled &&
-    !(await verifyTwoFactorToken(user.data.twoFactorSecret!, token!))
-  ) {
-    set.status = 401;
-    return {
-      error: 'Invalid two-factor authentication token.',
-    };
-  }
+    user.twoFactorEnabled &&
+    !(await verifyTwoFactorToken(user.twoFactorSecret!, token!))
+  )
+    return setFieldError(set, 401, 'token', [
+      'Invalid two-factor authentication token.',
+    ]);
 
-  const sessionId = createSessionId(user.data.id!);
-  const accessToken = await generateAccessToken(jwt, sessionId);
-  const refreshToken = await generateRefreshToken(jwt, sessionId);
+  const sessionId = createSessionId(user.id!);
+  const accessToken = await generateAccessToken({ sessionId, userId: user.id });
+  const refreshToken = await generateRefreshToken({
+    sessionId,
+    userId: user.id,
+  });
 
   const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(
     redis,
     refreshToken,
-    user.data.id!
+    user.id!
   );
   if (!isSetRefreshTokenOnRedisSuccess) {
-    set.status = 500;
-    return {
-      error: 'Failed to store refresh token in Redis.',
-    };
+    return setError(set, 500, null, [
+      'Failed to store refresh token in Redis.',
+    ]);
   }
 
   const isSetSessionIdOnRedisSuccess = await setSessionId<User>(
     redis,
     sessionId,
-    user.data
+    user
   );
   if (!isSetSessionIdOnRedisSuccess) {
-    set.status = 500;
-    return {
-      error: 'Failed to store session ID in Redis.',
-    };
+    return setError(set, 500, null, ['Failed to store session ID in Redis.']);
   }
 
   set.status = 200;
@@ -226,113 +219,115 @@ export const handleUserLogin: HandleUserLogin = async ({
   set.headers['X-Refresh-Token'] = refreshToken;
   set.headers['X-Session-Id'] = sessionId;
 
+  const { password: pass, ...userData } = user;
+
   return {
-    data: { userId: user.data.id! },
+    success: true,
+    data: userData,
     message: 'User logged in successfully.',
+    links: {
+      self: `/users/${user.id}`,
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
   };
 };
 
 export const handleTokenRefresh: HandleTokenRefresh = async ({
-  set,
-  jwt,
-  redis,
   body,
+  set,
+  redis,
   refreshToken,
   sessionId,
 }) => {
-  if (!body) {
-    set.status = 400;
-    return {
-      error: 'Request body is missing.',
-    };
-  }
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
 
   const { userId } = body;
-  set.headers['content-type'] = 'application/json';
+  const errors: BaseError = [];
+  const validations = [
+    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
+    {
+      field: 'sessionId',
+      value: sessionId,
+      errorMessage: 'Session ID is missing.',
+    },
+    {
+      field: 'refreshToken',
+      value: refreshToken,
+      errorMessage: 'Refresh token is missing.',
+    },
+  ];
 
-  if (!userId) {
-    set.status = 400;
-    return {
-      error: 'User ID is missing.',
-    };
+  for (const { field, value, errorMessage } of validations) {
+    if (!value) errors.push({ messages: [errorMessage], field });
   }
 
-  if (!sessionId) {
-    set.status = 400;
-    return {
-      error: 'Session ID is missing.',
-    };
+  if (errors.length > 0) return setError(set, 400, errors, null);
+
+  const userResult = await userService.getUserById(userId);
+  if (!isServiceMethodSuccess<User>(userResult)) {
+    return setError(set, userResult.statusCode, userResult.errors, null);
   }
 
-  if (!refreshToken) {
-    set.status = 400;
-    return {
-      error: 'Refresh token is missing.',
-    };
-  }
-
-  const user = await userService.getUserById(userId);
-  if (!isServiceMethodSuccess<User>(user)) {
-    set.status = user.statusCode;
-    return {
-      error: `User retrieval failed: ${user.error}`,
-    };
-  }
-
-  const decoded = await jwt.verify(refreshToken);
-  if (!decoded) {
-    set.status = 401;
-    return {
-      error: 'Invalid refresh token.',
-    };
+  const user = userResult.data;
+  const decoded = await verifyJwtToken(refreshToken!);
+  if (!isVerifyJwtTokenSuccess(decoded)) {
+    return setFieldError(set, 401, 'refreshToken', [decoded.error]);
   }
 
   const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
-  if (storedRefreshToken !== refreshToken) {
-    set.status = 401;
-    return {
-      error: 'Refresh token mismatch.',
-    };
-  }
+  if (storedRefreshToken !== refreshToken)
+    return setFieldError(set, 401, 'refreshToken', ['Refresh token mismatch.']);
 
-  const userSessionData = await getSessionData(redis, sessionId);
+  const userSessionData = await getSessionData(redis, sessionId!);
   if (!isGetSessionDataSuccess(userSessionData)) {
-    set.status = userSessionData.statusCode;
-    return {
-      error: `Session data retrieval failed: ${userSessionData.error}`,
-    };
+    return setError(
+      set,
+      userSessionData.statusCode,
+      userSessionData.errors,
+      null
+    );
   }
 
   const newSessionId = createSessionId(userId);
-  const accessToken = await generateAccessToken(jwt, newSessionId);
-  const newRefreshToken = await generateRefreshToken(jwt, newSessionId);
+  const accessToken = await generateAccessToken({
+    sessionId: newSessionId,
+    userId,
+  });
+  const newRefreshToken = await generateRefreshToken({
+    sessionId: newSessionId,
+    userId,
+  });
 
-  await redis.del(`refresh-token:${userId}`);
-  await redis.del(sessionId);
+  try {
+    await redis.del(`refresh-token:${userId}`);
+    await redis.del(sessionId!);
+  } catch (error) {
+    return setError(set, 500, null, ['Failed to delete old session data.']);
+  }
 
   const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(
     redis,
     newRefreshToken,
-    user.data.id!
+    userId
   );
-  if (!isSetRefreshTokenOnRedisSuccess) {
-    set.status = 500;
-    return {
-      error: 'Failed to store new refresh token in Redis.',
-    };
-  }
+  if (!isSetRefreshTokenOnRedisSuccess)
+    return setError(set, 500, null, [
+      'Failed to store new refresh token in Redis.',
+    ]);
 
   const isSetSessionIdOnRedisSuccess = await setSessionId<User>(
     redis,
     newSessionId,
-    user.data
+    user
   );
-  if (!isSetSessionIdOnRedisSuccess) {
-    set.status = 500;
-    return {
-      error: 'Failed to store new session ID in Redis.',
-    };
-  }
+  if (!isSetSessionIdOnRedisSuccess)
+    return setError(set, 500, null, [
+      'Failed to store new session ID in Redis.',
+    ]);
 
   set.status = 200;
   set.headers['authorization'] = `Bearer ${accessToken}`;
@@ -340,326 +335,247 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
   set.headers['X-Session-Id'] = newSessionId;
 
   return {
+    success: true,
     message: 'Token refreshed successfully.',
+    links: {
+      self: `/users/${userId}`,
+      login: '/auth/login',
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
   };
 };
 
 export const handleUserLogout: HandleUserLogout = async ({
   body,
   set,
-  jwt,
   redis,
   accessToken,
   refreshToken,
   sessionId,
 }) => {
-  if (!body) {
-    set.status = 400;
-    return {
-      error: 'Request body is missing.',
-    };
-  }
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
 
   const { userId } = body;
-  set.headers['content-type'] = 'application/json';
+  const errors: BaseError = [];
+  const validations = [
+    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
+    {
+      field: 'sessionId',
+      value: sessionId,
+      errorMessage: 'Session ID is missing.',
+    },
+    {
+      field: 'refreshToken',
+      value: refreshToken,
+      errorMessage: 'Refresh token is missing.',
+    },
+    {
+      field: 'accessToken',
+      value: accessToken,
+      errorMessage: 'Access token is missing.',
+    },
+  ];
 
-  if (!sessionId) {
-    set.status = 400;
-    return {
-      error: 'Session ID is missing.',
-    };
+  for (const { field, value, errorMessage } of validations) {
+    if (!value) errors.push({ messages: [errorMessage], field });
   }
 
-  if (!refreshToken) {
-    set.status = 400;
-    return {
-      error: 'Refresh token is missing.',
-    };
+  if (errors.length > 0) return setError(set, 400, errors, null);
+
+  const userResult = await userService.getUserById(userId);
+  if (!isServiceMethodSuccess<User>(userResult)) {
+    return setError(set, userResult.statusCode, userResult.errors, null);
   }
 
-  if (!accessToken) {
-    set.status = 400;
-    return {
-      error: 'Access token is missing.',
-    };
+  const decodedAccessToken = await verifyJwtToken(accessToken!);
+  if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
+    return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
   }
 
-  if (!userId) {
-    set.status = 400;
-    return {
-      error: 'User ID is missing.',
-    };
-  }
-
-  const user = await userService.getUserById(userId);
-  if (!isServiceMethodSuccess<User>(user)) {
-    set.status = user.statusCode;
-    return {
-      error: `User retrieval failed: ${user.error}`,
-    };
-  }
-
-  const decodedAccessToken = await jwt.verify(accessToken);
-  if (!decodedAccessToken) {
-    set.status = 401;
-    return {
-      error: 'Invalid access token.',
-    };
-  }
-
-  const decodedRefreshToken = await jwt.verify(refreshToken);
-  if (!decodedRefreshToken) {
-    set.status = 401;
-    return {
-      error: 'Invalid refresh token.',
-    };
+  const decodedRefreshToken = await verifyJwtToken(refreshToken!);
+  if (!isVerifyJwtTokenSuccess(decodedRefreshToken)) {
+    return setFieldError(set, 401, 'refreshToken', [decodedRefreshToken.error]);
   }
 
   const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
   if (storedRefreshToken !== refreshToken) {
-    set.status = 401;
-    return {
-      error: 'Refresh token mismatch.',
-    };
+    return setFieldError(set, 401, 'refreshToken', ['Refresh token mismatch.']);
   }
 
-  const userSessionData = await getSessionData(redis, sessionId);
+  const userSessionData = await getSessionData(redis, sessionId!);
   if (!isGetSessionDataSuccess(userSessionData)) {
-    set.status = userSessionData.statusCode;
-    return {
-      error: `Session data retrieval failed: ${userSessionData.error}`,
-    };
+    return setError(
+      set,
+      userSessionData.statusCode,
+      userSessionData.errors,
+      null
+    );
   }
 
-  await redis.del(`refresh-token:${userId}`);
-  await redis.del(sessionId);
+  try {
+    await redis.del(`refresh-token:${userId}`);
+    await redis.del(sessionId!);
+  } catch (error) {
+    return setError(set, 500, null, ['Failed to delete session data.']);
+  }
 
   set.status = 200;
   return {
+    success: true,
     message: 'User logged out successfully.',
+    links: {
+      self: `/users/${userId}`,
+      login: '/auth/login',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
   };
 };
 
-export const handleEnableTwoFactorAuth: HandleEnableTwoFactorAuth = async ({
-  body,
+export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   set,
-  jwt,
-  redis,
+  body,
+  query,
   accessToken,
   refreshToken,
   sessionId,
+  redis,
 }) => {
-  if (!body) {
-    set.status = 400;
-    return {
-      error: 'Request body is missing.',
-    };
-  }
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
+  if (!query) return setError(set, 400, null, ['Query parameter is missing.']);
 
   const { userId } = body;
-  set.headers['content-type'] = 'application/json';
+  const { enable } = query;
 
-  if (!userId) {
-    set.status = 400;
-    return {
-      error: 'User ID is missing.',
-    };
+  const errors: BaseError = [];
+  const validations = [
+    {
+      field: 'enable',
+      value: enable,
+      errorMessage: 'Enable flag is missing.',
+    },
+    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
+    {
+      field: 'sessionId',
+      value: sessionId,
+      errorMessage: 'Session ID is missing.',
+    },
+    {
+      field: 'refreshToken',
+      value: refreshToken,
+      errorMessage: 'Refresh token is missing.',
+    },
+    {
+      field: 'accessToken',
+      value: accessToken,
+      errorMessage: 'Access token is missing.',
+    },
+  ];
+
+  for (const { field, value, errorMessage } of validations) {
+    if (!value) errors.push({ messages: [errorMessage], field });
   }
 
-  if (!sessionId) {
-    set.status = 400;
-    return {
-      error: 'Session ID is missing.',
-    };
+  if (errors.length > 0) return setError(set, 400, errors, null);
+
+  if (enable !== 'true' && enable !== 'false') {
+    return setFieldError(set, 400, 'enable', ['Invalid value for enable flag: must be either "true" or "false".']);
   }
 
-  if (!refreshToken) {
-    set.status = 400;
-    return {
-      error: 'Refresh token is missing.',
-    };
+  const userResult = await userService.getUserById(userId);
+  if (!isServiceMethodSuccess<User>(userResult)) {
+    return setError(set, userResult.statusCode, userResult.errors, null);
   }
 
-  if (!accessToken) {
-    set.status = 400;
-    return {
-      error: 'Access token is missing.',
-    };
+  const decodedAccessToken = await verifyJwtToken(accessToken!);
+  if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
+    return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
   }
 
-  const user = await userService.getUserById(userId);
-  if (!isServiceMethodSuccess<User>(user)) {
-    set.status = user.statusCode;
-    return {
-      error: `User retrieval failed: ${user.error}`,
-    };
-  }
-
-  const decodedAccessToken = await jwt.verify(accessToken);
-  if (!decodedAccessToken) {
-    set.status = 401;
-    return {
-      error: 'Invalid access token.',
-    };
-  }
-
-  const decodedRefreshToken = await jwt.verify(refreshToken);
-  if (!decodedRefreshToken) {
-    set.status = 401;
-    return {
-      error: 'Invalid refresh token.',
-    };
+  const decodedRefreshToken = await verifyJwtToken(refreshToken!);
+  if (!isVerifyJwtTokenSuccess(decodedRefreshToken)) {
+    return setFieldError(set, 401, 'refreshToken', [decodedRefreshToken.error]);
   }
 
   const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
   if (storedRefreshToken !== refreshToken) {
-    set.status = 401;
-    return {
-      error: 'Refresh token mismatch.',
-    };
+    return setFieldError(set, 401, 'refreshToken', ['Refresh token mismatch.']);
   }
 
-  const isUserSessionDataExists = await getSessionData(redis, sessionId);
-  if (!isGetSessionDataSuccess(isUserSessionDataExists)) {
-    set.status = isUserSessionDataExists.statusCode;
-    return {
-      error: `Session data retrieval failed: ${isUserSessionDataExists.error}`,
-    };
+  const userSessionData = await getSessionData(redis, sessionId!);
+  if (!isGetSessionDataSuccess(userSessionData)) {
+    return setError(
+      set,
+      userSessionData.statusCode,
+      userSessionData.errors,
+      null
+    );
+  }
+
+  const enableTwoFactorAuth = enable === 'true';
+
+  if (userResult.data.twoFactorEnabled === enableTwoFactorAuth) {
+    return setError(set, 400, null, [
+      `Two-factor authentication is already ${
+        enableTwoFactorAuth ? 'enabled' : 'disabled'
+      }.`,
+    ]);
   }
 
   const secret = generateTwoFactorSecret();
   const qrCode = await generateQRCode(secret.otpauth_url!);
   if (!isGenerateQRCodeSuccess(qrCode)) {
-    set.status = 500;
-    return {
-      error: `Failed to generate QR code: ${qrCode.error}`,
-    };
+    return setError(set, 500, null, ['Failed to generate QR code.']);
   }
 
-  const userEnabledTwoFactor = await userService.enableTwoFactorAuth(
+  const updatedUserResult = await userService.toggleTwoFactorAuth(
     userId,
+    enableTwoFactorAuth,
     secret.base32
   );
-  if (!isServiceMethodSuccess<{ userId: number }>(userEnabledTwoFactor)) {
-    set.status = userEnabledTwoFactor.statusCode;
-    return {
-      error: `Failed to enable two-factor authentication: ${userEnabledTwoFactor.error}`,
-    };
+  if (!isServiceMethodSuccess<{ userId: number }>(updatedUserResult)) {
+    return setError(
+      set,
+      updatedUserResult.statusCode,
+      updatedUserResult.errors,
+      null
+    );
   }
 
   set.status = 200;
+
+  if (enableTwoFactorAuth) {
+    return {
+      success: true,
+      data: {
+        userId: updatedUserResult.data.userId,
+        qrCode: qrCode.qrCode,
+        secret: secret.base32,
+      },
+      message: `Two-factor authentication enabled successfully.`,
+      links: {
+        self: `/users/${userId}`,
+        login: '/auth/login',
+        logout: '/auth/logout',
+        toggleTwoFactorAuth: '/auth/two-factor',
+      },
+    };
+  }
+
   return {
-    message: 'Two-factor authentication enabled successfully.',
-    data: {
-      qrCode: qrCode.qrCode,
+    success: true,
+    message: `Two-factor authentication disabled successfully.`,
+    links: {
+      self: `/users/${userId}`,
+      login: '/auth/login',
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
     },
-  };
-};
-
-export const handleDisableTwoFactorAuth: HandleDisableTwoFactorAuth = async ({
-  body,
-  set,
-  jwt,
-  redis,
-  accessToken,
-  refreshToken,
-  sessionId,
-}) => {
-  if (!body) {
-    set.status = 400;
-    return {
-      error: 'Request body is missing.',
-    };
-  }
-
-  const { userId } = body;
-  set.headers['content-type'] = 'application/json';
-
-  if (!userId) {
-    set.status = 400;
-    return {
-      error: 'User ID is missing.',
-    };
-  }
-
-  if (!sessionId) {
-    set.status = 400;
-    return {
-      error: 'Session ID is missing.',
-    };
-  }
-
-  if (!refreshToken) {
-    set.status = 400;
-    return {
-      error: 'Refresh token is missing.',
-    };
-  }
-
-  if (!accessToken) {
-    set.status = 400;
-    return {
-      error: 'Access token is missing.',
-    };
-  }
-
-  const user = await userService.getUserById(userId);
-  if (!isServiceMethodSuccess<User>(user)) {
-    set.status = user.statusCode;
-    return {
-      error: `User retrieval failed: ${user.error}`,
-    };
-  }
-
-  if (user.data.twoFactorEnabled === false) {
-    set.status = 400;
-    return {
-      error: 'Two-factor authentication is not enabled.',
-    };
-  }
-
-  const decodedAccessToken = await jwt.verify(accessToken);
-  if (!decodedAccessToken) {
-    set.status = 401;
-    return {
-      error: 'Invalid access token.',
-    };
-  }
-
-  const decodedRefreshToken = await jwt.verify(refreshToken);
-  if (!decodedRefreshToken) {
-    set.status = 401;
-    return {
-      error: 'Invalid refresh token.',
-    };
-  }
-
-  const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
-  if (storedRefreshToken !== refreshToken) {
-    set.status = 401;
-    return {
-      error: 'Refresh token mismatch.',
-    };
-  }
-
-  const isUserSessionDataExists = await getSessionData(redis, sessionId);
-  if (!isGetSessionDataSuccess(isUserSessionDataExists)) {
-    set.status = isUserSessionDataExists.statusCode;
-    return {
-      error: `Session data retrieval failed: ${isUserSessionDataExists.error}`,
-    };
-  }
-
-  const userDisabledTwoFactor = await userService.disableTwoFactorAuth(userId);
-  if (!isServiceMethodSuccess<{ userId: number }>(userDisabledTwoFactor)) {
-    set.status = userDisabledTwoFactor.statusCode;
-    return {
-      error: `Failed to disable two-factor authentication: ${userDisabledTwoFactor.error}`,
-    };
-  }
-
-  set.status = 200;
-  return {
-    message: 'Two-factor authentication disabled successfully.',
   };
 };

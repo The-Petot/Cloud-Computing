@@ -2,7 +2,7 @@ import { Jwt, Redis, User } from './types/global.type';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
-} from './services/user.service';
+} from './types/global.type';
 import { ExtendedEnv } from './types/types';
 import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';

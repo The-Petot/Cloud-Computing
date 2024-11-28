@@ -1,14 +1,23 @@
 import { InferHandler } from 'elysia';
 import app from '../index';
-import { User } from '../global.types';
+import { User } from './global.types';
 
-interface JSONErrorResponse {
-  error: string;
+export interface JSONErrorResponse {
+  success: boolean;
+  errors: {
+    messages: string[];
+    field?: string;
+  }[];
 }
 
-interface JSONSuccessResponse<T> {
+export interface JSONSuccessResponse<T> {
   data?: T;
   message: string;
+  success: boolean;
+  links: {
+    self: string;
+    [key: string]: string;
+  };
 }
 
 
@@ -35,7 +44,7 @@ export type HandleUserLogin = InferHandler<
   {
     body: { email: string; password: string, token?: string };
     response: {
-      200: JSONSuccessResponse<{ userId: number }>;
+      200: JSONSuccessResponse<Omit<User, "password">>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;
@@ -71,13 +80,14 @@ export type HandleTokenRefresh = InferHandler<
   }
 >
 
-export type HandleEnableTwoFactorAuth = InferHandler<
+export type HandleToggleTwoFactor = InferHandler<
   typeof app,
-  '/enable-2fa',
+  '/two-factor',
   {
+    query: { enable: string };
     body: { userId: number };
     response: {
-      200: JSONSuccessResponse<{ qrCode: string }>;
+      200: JSONSuccessResponse<{}>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;
@@ -85,13 +95,13 @@ export type HandleEnableTwoFactorAuth = InferHandler<
   }
 >
 
-export type HandleDisableTwoFactorAuth = InferHandler<
+export type HandleGoogleOAuth = InferHandler<
   typeof app,
-  '/disable-2fa',
+  '/oauth/google',
   {
-    body: { userId: number };
+    params: { token: string };
     response: {
-      200: JSONSuccessResponse<{}>;
+      200: JSONSuccessResponse<{ userId: number }>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;

@@ -1,27 +1,30 @@
 import { User } from '../types/global.type';
 import userService from '../services/user.service';
 import { isServiceMethodSuccess } from '../utils';
-import { HandleGetUserById, HandleGetUsers } from '../types/controller.type';
+import { HandleGetUserById } from '../types/user.type';
+
 export const handleGetUserById: HandleGetUserById = async ({
   accessToken,
   refreshToken,
   sessionId,
-  body,
   set,
+  params: {  userId },
 }) => {
-  if (!body) {
+  set.headers['content-type'] = 'application/json';
+  console.log('userId', userId);
+
+  if (!userId) {
     set.status = 400;
     return {
         errors: [
           {
-            field: 'body',
-            messages: ['Request body is missing'],
+            header: 'User ID',
+            messages: ['User ID is missing'],
           },
         ],
     };
   }
 
-  const { userId } = body;
   if (!accessToken) {
     set.status = 401;
     return {
@@ -77,8 +80,3 @@ export const handleGetUserById: HandleGetUserById = async ({
     }
   };
 };
-
-
-export const handleGetUsers: HandleGetUsers = async () => {
-
-}
