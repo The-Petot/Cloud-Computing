@@ -138,6 +138,7 @@ export const handleUserLogin: HandleUserLogin = async ({
 
   const { email, password, token } = body;
   const erros: BaseError = [];
+  
   const validations = [
     { field: 'email', value: email, errorMessage: 'Email is missing.' },
     {
