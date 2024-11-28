@@ -1,17 +1,13 @@
-import { BaseError, Jwt, Redis, User } from './types/global.types';
+import { Jwt, Redis, User } from './types/global.type';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
-} from './types/service.type';
-import { ExtendedEnv } from './types';
+} from './types/global.type';
+import { ExtendedEnv } from './types/types';
 import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';
-import * as jose from 'jose';
 import speakeasy, { GeneratedSecret } from 'speakeasy';
 import QRcode from 'qrcode';
-import { StatusMap } from 'elysia';
-import { HTTPHeaders } from 'elysia/dist/types';
-import { ElysiaCookie } from 'elysia/dist/cookies';
 
 export function getEnv(key: keyof ExtendedEnv): string {
   const value = process.env[key];
@@ -62,73 +58,31 @@ export async function isPasswordMatch(
 }
 
 export function createSessionId(userId: number): string {
-  const sessionId = `${String(userId)}:${v4()}`;
+  const sessionId = `${String(userId)}:${v4()}`
   return sessionId;
 }
 
-const jwtSecret = new TextEncoder().encode(getEnv('JWT_SECRET'));
-export async function generateAccessToken<T extends Record<string, unknown>>(
-  payload: T
+export async function generateAccessToken(
+  jwt: Jwt,
+  sessionId: string
 ): Promise<string> {
-  const accessToken = await new jose.SignJWT(payload)
-    .setProtectedHeader({
-      alg: 'HS256',
-    })
-    .setExpirationTime('1h')
-    .setIssuedAt()
-    .setIssuer('Mindcraft')
-    .setAudience('Mindcraft')
-    .sign(jwtSecret);
-
+  const accessToken = await jwt.sign({
+    sessionId,
+    
+    exp: Math.floor(Date.now() / 1000) + 60 * 60,
+  });
   return accessToken;
 }
 
-export async function generateRefreshToken<T extends Record<string, unknown>>(
-  payload: T
+export async function generateRefreshToken(
+  jwt: Jwt,
+  sessionId: string
 ): Promise<string> {
-  const accessToken = await new jose.SignJWT(payload)
-    .setProtectedHeader({
-      alg: 'HS256',
-    })
-    .setExpirationTime('7d')
-    .setIssuedAt()
-    .setIssuer('Mindcraft')
-    .setAudience('Mindcraft')
-    .sign(jwtSecret);
-
-  return accessToken;
-}
-
-type VerifyJwtTokenSuccess = {
-  payload: jose.JWTPayload;
-  protectedHeader: jose.JWTHeaderParameters;
-};
-
-type VerifyJwtTokenError = {
-  error: string;
-};
-
-type VerifyJwtTokenResult = VerifyJwtTokenSuccess | VerifyJwtTokenError;
-
-export function isVerifyJwtTokenSuccess(
-  result: VerifyJwtTokenResult
-): result is VerifyJwtTokenSuccess {
-  return (result as VerifyJwtTokenSuccess).payload !== undefined;
-}
-
-export async function verifyJwtToken(
-  token: string
-): Promise<VerifyJwtTokenResult> {
-  try {
-    const result = await jose.jwtVerify(token, jwtSecret);
-    return result;
-  } catch (error) {
-    return {
-      error: `Unable to verify access token: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`,
-    };
-  }
+  const refreshToken = await jwt.sign({
+    sessionId,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
+  });
+  return refreshToken;
 }
 
 export function generateTwoFactorSecret(): GeneratedSecret {
@@ -136,13 +90,14 @@ export function generateTwoFactorSecret(): GeneratedSecret {
   return secret;
 }
 
+
 type GenerateQRCodeSuccess = {
   qrCode: string;
-};
+}
 
 type GenerateQRCodeError = {
   error: string;
-};
+}
 
 type GenerateQRCodeResult = GenerateQRCodeSuccess | GenerateQRCodeError;
 
@@ -182,11 +137,7 @@ export async function verifyTwoFactorToken(
   return isTokenValid;
 }
 
-export async function setSessionId<T>(
-  redis: Redis,
-  sessionId: string,
-  data: T
-): Promise<boolean> {
+export async function setSessionId<T>(redis: Redis, sessionId: string, data: T): Promise<boolean> {
   try {
     await redis.set(sessionId, JSON.stringify(data));
     return true;
@@ -208,12 +159,13 @@ export async function setRefreshTokenOnRedis(
   }
 }
 
-type GetSessionDataSuccess = User;
+
+type GetSessionDataSuccess = User
 type GetSessionDataFailed = {
-  errors: BaseError;
-  statusCode: number;
-};
-type GetSessionDataResult = GetSessionDataSuccess | GetSessionDataFailed;
+  error: string;
+  statusCode: number
+}
+type GetSessionDataResult = GetSessionDataSuccess | GetSessionDataFailed
 
 export function isGetSessionDataSuccess(
   result: GetSessionDataResult
@@ -221,76 +173,19 @@ export function isGetSessionDataSuccess(
   return (result as GetSessionDataSuccess).email !== undefined;
 }
 
-export async function getSessionData(
-  redis: Redis,
-  sessionId: string
-): Promise<GetSessionDataResult> {
+export async function getSessionData(redis: Redis, sessionId: string): Promise<GetSessionDataResult> {
   try {
     const data = await redis.get(sessionId);
     if (!data) {
-      return {
-        errors: [
-          {
-            messages: ['Session not found'],
-          },
-        ],
-        statusCode: 401,
-      };
+      return { error: 'Session not found', statusCode: 401 };
     }
     return JSON.parse(data);
   } catch (error) {
     return {
-      errors: [
-        {
-          messages: [
-            `Unable to get session data: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`,
-          ],
-        },
-      ],
+      error: `Unable to get session data: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
       statusCode: 500,
     };
   }
 }
-
-
-
-export const setError = (
-  set: {
-    headers: HTTPHeaders;
-    status?: number | keyof StatusMap;
-    redirect?: string;
-    cookie?: Record<string, ElysiaCookie>;
-  },
-  statusCode: number,
-  errors: BaseError | null,
-  messages: string[] | null,
-) => {
-  const response: {success: boolean, errors: BaseError} = { success: false, errors: [] };
-  set.status = statusCode;
-
-  if (errors !== null) {
-    response.errors = errors;
-  }
-
-  if (messages !== null) {
-    response.errors.push({ messages } );
-  }
-
-  return response;
-};
-
-export const setFieldError = (
-  set: {
-    headers: HTTPHeaders;
-    status?: number | keyof StatusMap;
-    redirect?: string;
-    cookie?: Record<string, ElysiaCookie>;
-  },
-  statusCode: number,
-  field: string,
-  messages: string[]
-) => {
-  return setError(set, statusCode, [{ field, messages }], null);
-};

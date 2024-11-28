@@ -3,7 +3,10 @@ export interface ServiceMethodSuccessReturnType<T> {
 }
 
 export interface ServiceMethodErrorReturnType {
-  error: string;
+  errors: {
+    messages: string[];
+    field?: string;
+  }[];
   statusCode: number;
 }
 
