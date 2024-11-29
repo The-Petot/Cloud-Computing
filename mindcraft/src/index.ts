@@ -1,6 +1,5 @@
 import { Elysia } from 'elysia';
 import { getEnv } from './utils';
-import { jwt } from '@elysiajs/jwt';
 import { cors } from '@elysiajs/cors';
 import { logger } from '@bogeychan/elysia-logger';
 import bcrypt from 'bcrypt';
@@ -28,7 +27,6 @@ const app = new Elysia({
       path: '/docs',
     })
   )
-  .use(jwt({ secret: getEnv('JWT_SECRET'), name: 'jwt' }))
   .use(cors({ origin: '*' }))
   .use(
     logger({
