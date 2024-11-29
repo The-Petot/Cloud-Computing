@@ -34,6 +34,81 @@ import {
 } from '../types/controller.type';
 
 
+export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
+
+  const { email, password, firstName, lastName } = body;
+  const errors: BaseError = [];
+  const validations = [
+    { field: 'email', value: email, errorMessage: 'Email is missing.' },
+    { field: 'password', value: password, errorMessage: 'Password is missing.' },
+    { field: 'firstName', value: firstName, errorMessage: 'First name is missing.' },
+    { field: 'lastName', value: lastName, errorMessage: 'Last name is missing.' },
+  ];
+
+  for (const { field, value, errorMessage } of validations) {
+    if (!value?.trim()) errors.push({ messages: [errorMessage], field });
+  }
+
+  if (errors.length > 0) return setError(set, 400, errors, null);
+
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password!.trim();
+  const trimmedFirstName = firstName.trim();
+  const trimmedLastName = lastName.trim();
+
+  if (!isEmailValid(trimmedEmail))
+    return setFieldError(set, 400, 'email', ['Email format is invalid.']);
+
+  if (!isPasswordValid(trimmedPassword))
+    return setFieldError(set, 400, 'password', ['Password must be at least 8 characters long.']);
+
+  const hashedPassword = await hashPassword(trimmedPassword);
+  if (!hashedPassword)
+    return setError(set, 500, null, ['Failed to hash password.']);
+
+  const totalUserResult = await userService.getTotalUsers();
+  if (!isServiceMethodSuccess<{ totalUser: number }>(totalUserResult)) {
+    return setError(set, totalUserResult.statusCode, totalUserResult.errors, null);
+  }
+
+  const user: User = {
+    email: trimmedEmail,
+    password: hashedPassword,
+    firstName: trimmedFirstName,
+    lastName: trimmedLastName,
+    totalScore: 0,
+    currentRank: totalUserResult.data.totalUser + 1,
+    notificationEnabled: false,
+    twoFactorEnabled: false,
+    profileImgUrl: `https://avatar.iran.liara.run/username?username=${firstName[0]}+${lastName[0]}`,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const createUserResult = await userService.create(user);
+  if (!isServiceMethodSuccess<User>(createUserResult)) {
+    return setError(set, createUserResult.statusCode, createUserResult.errors, null);
+  }
+
+  set.status = 201;
+  const { password: pass, ...userData } = createUserResult.data;
+
+  return {
+    success: true,
+    data: userData,
+    message: 'User created successfully.',
+    links: {
+      self: `/users/${createUserResult.data.id}`,
+      login: '/auth/login',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
+  };
+}
+
 export const handleUserLogin: HandleUserLogin = async ({
   body,
   set,

@@ -1,0 +1,16 @@
+  id
+
+  email
+  password
+  firstName
+  lastName
+  totalScore
+  currentRank
+  profileImgUrl
+  
+  twoFactorSecret
+  twoFactorEnabled
+  notificationEnabled
+
+  createdAt
+  updatedAt
