@@ -4,10 +4,10 @@ import { cors } from '@elysiajs/cors';
 import { logger } from '@bogeychan/elysia-logger';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import swagger from '@elysiajs/swagger';
 import { config } from 'dotenv';
 import userRouter from './routes/user.route';
 config();
+
 const redis = await import('./database/redis').then((m) => m.default);
 const app = new Elysia({
   serve: {
@@ -15,18 +15,6 @@ const app = new Elysia({
       getEnv('NODE_ENV') === 'production' ? getEnv('HOST') : 'localhost',
   },
 })
-  .use(
-    swagger({
-      documentation: {
-        info: {
-          title: 'Mindcraft Service',
-          description: "This is the Mindcraft's main service",
-          version: '1.0.0',
-        },
-      },
-      path: '/docs',
-    })
-  )
   .use(cors({ origin: '*' }))
   .use(
     logger({
@@ -43,7 +31,8 @@ const app = new Elysia({
   .decorate('bcrypt', bcrypt)
   .decorate('uuid', uuidv4)
   .derive(({ request }) => {
-    const accessToken = request.headers.get('Authorization')?.split(' ')[1] ?? null;
+    const accessToken =
+      request.headers.get('Authorization')?.split(' ')[1] ?? null;
     const refreshToken = request.headers.get('X-Refresh-Token') ?? null;
     const sessionId = request.headers.get('X-Session-Id') ?? null;
     return {
@@ -54,9 +43,8 @@ const app = new Elysia({
   })
   .use(userRouter)
   .listen(
-    getEnv('NODE_ENV') === 'production' ? parseInt(getEnv('PORT'), 10) : 3001
+    getEnv('NODE_ENV') === 'production' ? parseInt(getEnv('PORT'), 10) : 3001,
+    () => console.log('Server is running on port :' + (getEnv('PORT') || 3001))
   );
-
-console.log(`Server is running at ${app.server?.hostname}:${app.server?.port}`);
 
 export default app;

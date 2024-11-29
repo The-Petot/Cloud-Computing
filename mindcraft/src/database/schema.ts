@@ -19,7 +19,7 @@ export const usersTable = pgTable('users', {
   id: serial().primaryKey(),
 
   email: varchar({ length: 255 }).unique().notNull(),
-  password: varchar({ length: 255 }).notNull(),
+  password: varchar({ length: 255 }),
   firstName: varchar('first_name', { length: 255 }).notNull(),
   lastName: varchar('last_name', { length: 255 }).notNull(),
   totalScore: integer().notNull().default(0),

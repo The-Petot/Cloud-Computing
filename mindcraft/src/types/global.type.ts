@@ -1,6 +1,12 @@
 import { JWTPayloadSpec } from '@elysiajs/jwt';
 import redis from '../database/redis';
-import { challengesTable, participantsTable, usersTable } from '../database/schema';
+import {
+  answersTable,
+  challengesTable,
+  participantsTable,
+  questionsTable,
+  usersTable,
+} from '../database/schema';
 
 export type Jwt = {
   readonly sign: (
@@ -12,6 +18,7 @@ export type Jwt = {
 };
 
 export interface JSONErrorResponse {
+  success: boolean;
   errors: {
     messages: string[];
     field?: string;
@@ -19,6 +26,7 @@ export interface JSONErrorResponse {
 }
 
 export interface JSONSuccessResponse<T> {
+  success: boolean;
   data?: T;
   message: string;
   links: {
@@ -46,3 +54,5 @@ export type Redis = typeof redis;
 export type User = typeof usersTable.$inferInsert;
 export type Challenge = typeof challengesTable.$inferInsert;
 export type Participation = typeof participantsTable.$inferInsert;
+export type Question = typeof questionsTable.$inferInsert;
+export type Answer = typeof answersTable.$inferInsert;

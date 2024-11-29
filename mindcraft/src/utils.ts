@@ -206,7 +206,7 @@ export async function setRefreshTokenOnRedis(
 }
 
 
-type GetSessionDataSuccess = User
+type GetSessionDataSuccess = Omit<User, "password">
 type GetSessionDataFailed = {
   error: string;
   statusCode: number
@@ -284,3 +284,22 @@ export const setFieldError = (
 ) => {
   return setError(set, statusCode, [{ field, messages }], null);
 };
+
+export function isANumber(param: string): boolean {
+  return !isNaN(Number(param));
+}
+
+export function handleDBError(error: unknown, message: string) {
+  return {
+    statusCode: 500,
+    errors: [
+      {
+        messages: [
+          `${message}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        ],
+      },
+    ],
+  };
+}
