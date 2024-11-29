@@ -85,6 +85,31 @@ const userService = {
       return handleDbError(error);
     }
   },
+
+  async upsert(user: User): Promise<ServiceMethodReturnType<User>> {
+    try {
+      const [newUser] = await db
+        .insert(usersTable)
+        .values(user)
+        .onConflictDoUpdate({
+          target: [usersTable.email],
+          set: {
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profileImgUrl: user.profileImgUrl,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      
+      return {
+        data: newUser,
+      }
+    } catch (error) {
+      return handleDbError(error);
+    }
+  },
 };
 
 // Utility Functions

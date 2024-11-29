@@ -21,6 +21,8 @@ import {
   setError,
   verifyJwtToken,
   isVerifyJwtTokenSuccess,
+  getGoogleUser,
+  isFetchGoogleUserSuccess,
 } from '../utils';
 import {
   HandleTokenRefresh,
@@ -31,100 +33,6 @@ import {
   HandleToggleTwoFactor,
 } from '../types/controller.type';
 
-export const handleUserRegister: HandleUserRegister = async ({ body, set }) => {
-  set.headers['content-type'] = 'application/json';
-  set.headers['accept'] = 'application/json';
-
-  if (!body) return setError(set, 400, null, ['Request body is missing.']);
-
-  const { email, password, firstName, lastName } = body;
-  const errors: BaseError = [];
-  const validations = [
-    { field: 'email', value: email, errorMessage: 'Email is missing.' },
-    {
-      field: 'password',
-      value: password,
-      errorMessage: 'Password is missing.',
-    },
-    {
-      field: 'firstName',
-      value: firstName,
-      errorMessage: 'First name is missing.',
-    },
-    {
-      field: 'lastName',
-      value: lastName,
-      errorMessage: 'Last name is missing.',
-    },
-  ];
-
-  for (const { field, value, errorMessage } of validations) {
-    if (!value?.trim()) errors.push({ messages: [errorMessage], field });
-  }
-
-  if (errors.length > 0) return setError(set, 400, errors, null);
-
-  const trimmedEmail = email.trim();
-  const trimmedPassword = password.trim();
-  const trimmedFirstName = firstName.trim();
-  const trimmedLastName = lastName.trim();
-
-  if (!isEmailValid(trimmedEmail))
-    return setFieldError(set, 400, 'email', ['Email format is invalid.']);
-
-  if (!isPasswordValid(trimmedPassword))
-    return setFieldError(set, 400, 'password', [
-      'Password must be at least 8 characters long.',
-    ]);
-
-  const totalUsersResult = await userService.getTotalUsers();
-  if (!isServiceMethodSuccess<{ totalUser: number }>(totalUsersResult)) {
-    return setError(
-      set,
-      totalUsersResult.statusCode,
-      totalUsersResult.errors,
-      null
-    );
-  }
-
-  const totalUsers = totalUsersResult.data.totalUser;
-  const newUser: User = {
-    email: trimmedEmail,
-    password: await hashPassword(trimmedPassword),
-    firstName: trimmedFirstName,
-    lastName: trimmedLastName,
-    totalScore: 0,
-    currentRank: totalUsers + 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    notificationEnabled: false,
-    twoFactorEnabled: false,
-    profileImgUrl: `https://avatar.iran.liara.run/username?username=${trimmedFirstName[0]}+${trimmedLastName[0]}`,
-  };
-
-  const createUserResult = await userService.create(newUser);
-  if (!isServiceMethodSuccess<User>(createUserResult)) {
-    return setError(
-      set,
-      createUserResult.statusCode,
-      createUserResult.errors,
-      null
-    );
-  }
-
-  set.status = 201;
-  return {
-    success: true,
-    data: { userId: createUserResult.data.id! },
-    message: 'User registered successfully.',
-    links: {
-      self: `/users/${createUserResult.data.id}`,
-      login: '/auth/login',
-      logout: '/auth/logout',
-      toggleTwoFactorAuth: '/auth/two-factor',
-    },
-  };
-};
 
 export const handleUserLogin: HandleUserLogin = async ({
   body,
@@ -177,7 +85,7 @@ export const handleUserLogin: HandleUserLogin = async ({
       'Two-factor authentication token is missing.',
     ]);
 
-  if (!(await isPasswordMatch(trimmedPassword, user.password)))
+  if (!(await isPasswordMatch(trimmedPassword, user.password!)))
     return setFieldError(set, 401, 'password', ['Incorrect password.']);
 
   if (
@@ -580,3 +488,97 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
     },
   };
 };
+
+export const handleGoogleOAuth: HandleGoogleOAuth = async ({ set, body, redis }) => {
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+  /*
+export type GoogleUser = {
+  sub: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  email: string;
+  email_verified: boolean;
+  locale: string;
+  hd: string;
+};
+  */
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
+
+  const { token } = body;
+
+  if (!token) return setFieldError(set, 400, 'token', ['Token is missing.']);
+
+  const googleUserResult = await getGoogleUser(token);
+  if (!isFetchGoogleUserSuccess(googleUserResult)) {
+    return setError(set, 401, googleUserResult, null);
+  }
+
+  const googleUser = googleUserResult;
+  if (googleUser.email_verified === false) {
+    return setError(set, 401, null, ['Email is not verified.']);
+  }
+
+  const totalUsersResult = await userService.getTotalUsers();
+  if (!isServiceMethodSuccess<{ totalUser: number }>(totalUsersResult)) {
+    return setError(
+      set,
+      totalUsersResult.statusCode,
+      totalUsersResult.errors,
+      null
+    );
+  }
+
+  const totalUsers = totalUsersResult.data.totalUser;
+  const newUser: User = {
+    email: googleUser.email,
+    firstName: googleUser.given_name,
+    lastName: googleUser.family_name,
+    totalScore: 0,
+    currentRank: totalUsers + 1,
+    notificationEnabled: false,
+    twoFactorEnabled: false,
+    profileImgUrl: googleUser.picture,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  const createUserResult = await userService.upsert(newUser);
+  if (!isServiceMethodSuccess<User>(createUserResult)) {
+    return setError(set, createUserResult.statusCode, createUserResult.errors, null);
+  }
+
+  const sessionId = createSessionId(createUserResult.data.id!);
+  const accessToken = await generateAccessToken({ sessionId, userId: createUserResult.data.id });
+  const refreshToken = await generateRefreshToken({ sessionId, userId: createUserResult.data.id });
+  
+  const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(redis, refreshToken, createUserResult.data.id!);
+  if (!isSetRefreshTokenOnRedisSuccess) {
+    return setError(set, 500, null, ['Failed to store refresh token in Redis.']);
+  }
+
+  const isSetSessionIdOnRedisSuccess = await setSessionId<User>(redis, sessionId, createUserResult.data);
+  if (!isSetSessionIdOnRedisSuccess) {
+    return setError(set, 500, null, ['Failed to store session ID in Redis.']);
+  }
+
+  set.status = 200;
+  set.headers['authorization'] = `Bearer ${accessToken}`;
+  set.headers['X-Refresh-Token'] = refreshToken;
+  set.headers['X-Session-Id'] = sessionId;
+  const { password, ...userData } = createUserResult.data;
+
+  return {
+    success: true,
+    data: userData,
+    message: 'User logged in successfully.',
+    links: {
+      self: `/users/${createUserResult.data.id}`,
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
+  };
+}
