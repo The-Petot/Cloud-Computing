@@ -277,7 +277,7 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
   }
 
   const newSessionId = createSessionId(userId);
-  const accessToken = await generateAccessToken({
+  const newAccessToken = await generateAccessToken({
     sessionId: newSessionId,
     userId,
   });
@@ -314,7 +314,7 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
     ]);
 
   set.status = 200;
-  set.headers['authorization'] = `Bearer ${accessToken}`;
+  set.headers['authorization'] = `Bearer ${newAccessToken}`;
   set.headers['X-Refresh-Token'] = newRefreshToken;
   set.headers['X-Session-Id'] = newSessionId;
 
@@ -380,16 +380,6 @@ export const handleUserLogout: HandleUserLogout = async ({
     return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
   }
 
-  const decodedRefreshToken = await verifyJwtToken(refreshToken!);
-  if (!isVerifyJwtTokenSuccess(decodedRefreshToken)) {
-    return setFieldError(set, 401, 'refreshToken', [decodedRefreshToken.error]);
-  }
-
-  const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
-  if (storedRefreshToken !== refreshToken) {
-    return setFieldError(set, 401, 'refreshToken', ['Refresh token mismatch.']);
-  }
-
   const userSessionData = await getSessionData(redis, sessionId!);
   if (!isGetSessionDataSuccess(userSessionData)) {
     return setError(
@@ -424,7 +414,6 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   body,
   query,
   accessToken,
-  refreshToken,
   sessionId,
   redis,
 }) => {
@@ -451,11 +440,6 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
       errorMessage: 'Session ID is missing.',
     },
     {
-      field: 'refreshToken',
-      value: refreshToken,
-      errorMessage: 'Refresh token is missing.',
-    },
-    {
       field: 'accessToken',
       value: accessToken,
       errorMessage: 'Access token is missing.',
@@ -480,16 +464,6 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   const decodedAccessToken = await verifyJwtToken(accessToken!);
   if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
     return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
-  }
-
-  const decodedRefreshToken = await verifyJwtToken(refreshToken!);
-  if (!isVerifyJwtTokenSuccess(decodedRefreshToken)) {
-    return setFieldError(set, 401, 'refreshToken', [decodedRefreshToken.error]);
-  }
-
-  const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
-  if (storedRefreshToken !== refreshToken) {
-    return setFieldError(set, 401, 'refreshToken', ['Refresh token mismatch.']);
   }
 
   const userSessionData = await getSessionData(redis, sessionId!);
