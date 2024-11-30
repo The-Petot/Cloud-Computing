@@ -742,7 +742,6 @@ export const handleDeleteUserChallenge: HandleDeleteUserChallenge = async ({
   redis,
 }) => {
   set.headers['content-type'] = 'application/json';
-  set.headers['accept'] = 'application/json';
 
   if (!params) {
     return setError(
