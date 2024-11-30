@@ -112,7 +112,6 @@ const userService = {
   },
 };
 
-// Utility Functions
 const createError = (statusCode: number, message: string) => ({
   errors: [{ messages: [message] }],
   statusCode,

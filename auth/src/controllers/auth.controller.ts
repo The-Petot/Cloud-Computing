@@ -104,6 +104,8 @@ export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
     links: {
       self: `/users/${createUserResult.data.id}`,
       login: '/auth/login',
+      logout: '/auth/logout',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
@@ -212,6 +214,7 @@ export const handleUserLogin: HandleUserLogin = async ({
     links: {
       self: `/users/${user.id}`,
       logout: '/auth/logout',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
@@ -404,6 +407,7 @@ export const handleUserLogout: HandleUserLogout = async ({
     links: {
       self: `/users/${userId}`,
       login: '/auth/login',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
@@ -627,6 +631,7 @@ export type GoogleUser = {
     links: {
       self: `/users/${createUserResult.data.id}`,
       logout: '/auth/logout',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
