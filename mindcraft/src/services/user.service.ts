@@ -1,7 +1,16 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import db from '../database/db';
-import { challengesTable, participantsTable, usersTable } from '../database/schema';
-import { Challenge, Participation, ServiceMethodReturnType, User } from '../types/global.type';
+import {
+  challengesTable,
+  participantsTable,
+  usersTable,
+} from '../database/schema';
+import {
+  Challenge,
+  Participation,
+  ServiceMethodReturnType,
+  User,
+} from '../types/global.type';
 import { handleDBError } from '../utils';
 
 const userService = {
@@ -80,7 +89,21 @@ const userService = {
     userId: number
   ): Promise<ServiceMethodReturnType<{ message: string }>> {
     try {
-      await db.delete(usersTable).where(eq(usersTable.id, userId));
+      const deletedUser = await db
+        .delete(usersTable)
+        .where(eq(usersTable.id, userId))
+        .returning();
+
+      if (deletedUser.length === 0) {
+        return {
+          statusCode: 404,
+          errors: [
+            {
+              messages: ['User not found'],
+            },
+          ],
+        };
+      }
 
       return {
         data: {
@@ -107,12 +130,14 @@ const userService = {
       return handleDBError(error, 'Unable to get user challenges');
     }
   },
-  async getUserParticipations(userId: number): Promise<ServiceMethodReturnType<Participation[]>> {
+  async getUserParticipations(
+    userId: number
+  ): Promise<ServiceMethodReturnType<Participation[]>> {
     try {
       const participations = await db
         .select()
         .from(participantsTable)
-        .where(eq(participantsTable.participantId, userId))
+        .where(eq(participantsTable.participantId, userId));
 
       return {
         data: participations,
@@ -120,8 +145,65 @@ const userService = {
     } catch (error) {
       return handleDBError(error, 'Unable to get user participations');
     }
-  }
-};
+  },
+  async createUserParticipation(
+    userId: number,
+    challengeId: number,
+    score: number
+  ): Promise<ServiceMethodReturnType<Participation>> {
+    try {
+      const [participation] = await db
+        .insert(participantsTable)
+        .values({
+          participantId: userId,
+          challengeId,
+          score,
+          createdAt: new Date(),
+        })
+        .returning();
 
+      return {
+        data: participation,
+      };
+    } catch (error) {
+      return handleDBError(error, 'Unable to create user participation');
+    }
+  },
+  async deleteUserChallenge(
+    userId: number,
+    challengeId: number
+  ): Promise<ServiceMethodReturnType<{ message: string }>> {
+    try {
+      const deletedChallenge = await db
+        .delete(challengesTable)
+        .where(
+          and(
+            eq(challengesTable.authorId, userId),
+            eq(challengesTable.id, challengeId)
+          )
+        )
+        .returning();
+
+      if (deletedChallenge.length === 0) {
+        return {
+          statusCode: 404,
+          errors: [
+            {
+              messages: ['Challenge not found'],
+            },
+          ],
+        };
+      }
+
+      return {
+        data: {
+          message: 'Challenge deleted successfully.',
+        },
+      };
+    } catch (error) {
+      return handleDBError(error, 'Unable to delete user challenge');
+    }
+  },
+};
 
 export default userService;

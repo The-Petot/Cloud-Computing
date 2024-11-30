@@ -73,6 +73,9 @@ export const handleGetChallengeById: HandleGetChallengeById = async ({
     message: 'Challenge fetched successfully.',
     links: {
       self: `/challenges/${challengeId}`,
+      challengeParticipants: `/challenges/${challengeId}/participants`,
+      challengeQuestions: `/challenges/${challengeId}/questions`,
+      challenges: '/challenges',
     },
   };
 };
@@ -128,13 +131,16 @@ export const handleGetChallengeParticipants: HandleGetChallengeParticipants =
       message: 'Challenge participants fetched successfully.',
       links: {
         self: `/challenges/${challengeId}/participants`,
+        challengeDetails: `/challenges/${challengeId}`,
+        challengeQuestions: `/challenges/${challengeId}/questions`,
+        challenges: '/challenges',
       },
     };
   };
 
 export const handleGetChallengeQuestions: HandleGetChallengeQuestions = async ({
   set,
-  params
+  params,
 }) => {
   set.headers['content-type'] = 'application/json';
 
@@ -167,8 +173,9 @@ export const handleGetChallengeQuestions: HandleGetChallengeQuestions = async ({
   }
 
   const challengeIdNumber = parseInt(challengeId);
-  const challengeQuestions =
-    await challengeService.getChallengeQuestions(challengeIdNumber);
+  const challengeQuestions = await challengeService.getChallengeQuestions(
+    challengeIdNumber
+  );
   if (!isServiceMethodSuccess(challengeQuestions)) {
     return setError(
       set,
@@ -185,6 +192,9 @@ export const handleGetChallengeQuestions: HandleGetChallengeQuestions = async ({
     message: 'Challenge questions fetched successfully.',
     links: {
       self: `/challenges/${challengeId}/questions`,
+      challengeDetails: `/challenges/${challengeId}`,
+      challengeParticipants: `/challenges/${challengeId}/participants`,
+      challenges: '/challenges',
     },
   };
 };

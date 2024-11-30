@@ -1,5 +1,5 @@
-import * as jose from 'jose'
-import {  Redis, User } from './types/global.type';
+import * as jose from 'jose';
+import { Redis, User } from './types/global.type';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
@@ -62,7 +62,7 @@ export async function isPasswordMatch(
 }
 
 export function createSessionId(userId: number): string {
-  const sessionId = `${String(userId)}:${v4()}`
+  const sessionId = `${String(userId)}:${v4()}`;
   return sessionId;
 }
 
@@ -136,14 +136,13 @@ export function generateTwoFactorSecret(): GeneratedSecret {
   return secret;
 }
 
-
 type GenerateQRCodeSuccess = {
   qrCode: string;
-}
+};
 
 type GenerateQRCodeError = {
   error: string;
-}
+};
 
 type GenerateQRCodeResult = GenerateQRCodeSuccess | GenerateQRCodeError;
 
@@ -183,7 +182,11 @@ export async function verifyTwoFactorToken(
   return isTokenValid;
 }
 
-export async function setSessionId<T>(redis: Redis, sessionId: string, data: T): Promise<boolean> {
+export async function setSessionId<T>(
+  redis: Redis,
+  sessionId: string,
+  data: T
+): Promise<boolean> {
   try {
     await redis.set(sessionId, JSON.stringify(data));
     return true;
@@ -205,13 +208,12 @@ export async function setRefreshTokenOnRedis(
   }
 }
 
-
-type GetSessionDataSuccess = Omit<User, "password">
+type GetSessionDataSuccess = Omit<User, 'password'>;
 type GetSessionDataFailed = {
   error: string;
-  statusCode: number
-}
-type GetSessionDataResult = GetSessionDataSuccess | GetSessionDataFailed
+  statusCode: number;
+};
+type GetSessionDataResult = GetSessionDataSuccess | GetSessionDataFailed;
 
 export function isGetSessionDataSuccess(
   result: GetSessionDataResult
@@ -219,7 +221,10 @@ export function isGetSessionDataSuccess(
   return (result as GetSessionDataSuccess).email !== undefined;
 }
 
-export async function getSessionData(redis: Redis, sessionId: string): Promise<GetSessionDataResult> {
+export async function getSessionData(
+  redis: Redis,
+  sessionId: string
+): Promise<GetSessionDataResult> {
   try {
     const data = await redis.get(sessionId);
     if (!data) {
@@ -239,9 +244,9 @@ export async function getSessionData(redis: Redis, sessionId: string): Promise<G
 export type BaseError = {
   field?: string;
   messages: string[];
-}
+};
 
-export type Errors = BaseError[]
+export type Errors = BaseError[];
 
 export const setError = (
   set: {
@@ -285,7 +290,7 @@ export const setFieldError = (
   return setError(set, statusCode, [{ field, messages }], null);
 };
 
-export function isANumber(param: string): boolean {
+export function isANumber(param: string | number): boolean {
   return !isNaN(Number(param));
 }
 
@@ -302,4 +307,44 @@ export function handleDBError(error: unknown, message: string) {
       },
     ],
   };
+}
+
+
+
+export type GenerateQuestionsResponse = {
+  question: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  correct_answer: string;
+  explanation: string;
+}[];
+
+export type GenerateQuestionsResult = GenerateQuestionsResponse | { error: string };
+
+export function isGenerateQuestionsError(
+  result: GenerateQuestionsResult
+): result is { error: string } {
+  return (result as { error: string }).error !== undefined;
+}
+
+export async function generateQuestions(
+  material: string
+): Promise<GenerateQuestionsResult> {
+  try {
+    const result = await fetch(
+      `${getEnv('MODEL_URL')}/generate?RequestContext=${material}`
+    );
+    const data: GenerateQuestionsResponse = await result.json();
+    return data;
+  } catch (error) {
+    return {
+      error: `Unable to generate questions: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    };
+  }
 }

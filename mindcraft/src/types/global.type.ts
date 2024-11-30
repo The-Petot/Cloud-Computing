@@ -56,3 +56,4 @@ export type Challenge = typeof challengesTable.$inferInsert;
 export type Participation = typeof participantsTable.$inferInsert;
 export type Question = typeof questionsTable.$inferInsert;
 export type Answer = typeof answersTable.$inferInsert;
+export type QuestionWithAnswers = Question & { answers?: Answer[] };

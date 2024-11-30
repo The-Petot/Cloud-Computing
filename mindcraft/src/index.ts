@@ -6,9 +6,12 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from 'dotenv';
 import userRouter from './routes/user.route';
+import challengeRouter from './routes/challenge.route';
+import participationRouter from './routes/participation.route';
 config();
 
 const redis = await import('./database/redis').then((m) => m.default);
+
 const app = new Elysia({
   serve: {
     hostname:
@@ -42,6 +45,8 @@ const app = new Elysia({
     };
   })
   .use(userRouter)
+  .use(challengeRouter)
+  .use(participationRouter)
   .listen(
     getEnv('NODE_ENV') === 'production' ? parseInt(getEnv('PORT'), 10) : 3001,
     () => console.log('Server is running on port :' + (getEnv('PORT') || 3001))

@@ -47,7 +47,7 @@ export const challengesTable = pgTable('challenges', {
   title: varchar({ length: 255 }).notNull(),
   description: text(),
   summary: text(),
-  tags: text().notNull(),
+  tags: text(),
 
   authorId: integer('author_id').notNull(),
   totalQuestions: integer('total_questions').notNull(),
@@ -69,13 +69,13 @@ export const questionsTable = pgTable('questions', {
   id: serial().primaryKey(),
   question: text().notNull(),
   challengeId: integer('challenge_id').notNull(),
+  explanation: text().notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const answersTable = pgTable('answers', {
   id: serial().primaryKey(),
   answer: text().notNull(),
-  explanation: text().notNull(),
   questionId: integer('question_id').notNull(),
   correct: boolean().notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),

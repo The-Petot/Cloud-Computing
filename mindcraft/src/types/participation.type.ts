@@ -7,7 +7,7 @@ import {
 } from './global.type';
 
 
-export type GetParticipations = InferHandler<
+export type HandleGetParticipations = InferHandler<
   typeof app,
   '/participations',
   {
@@ -20,13 +20,13 @@ export type GetParticipations = InferHandler<
   }
 >
 
-export type CreateParticipation = InferHandler<
+export type HandleGetParticipationById = InferHandler<
   typeof app,
-  '/participations',
+  '/participations/:participationId',
   {
-    body: Omit<Participation, 'id'>;
+    params: { participationId: string };
     response: {
-      201: JSONSuccessResponse<Participation>;
+      200: JSONSuccessResponse<Participation>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;

@@ -1,20 +1,13 @@
 import { InferHandler } from 'elysia';
 import app from '..';
-import { Challenge, JSONErrorResponse, JSONSuccessResponse, Participation, Question } from './global.type';
-
-export type HandleCreateChallenge = InferHandler<
-  typeof app,
-  '/challenges',
-  {
-    body: Omit<Challenge, 'id'>;
-    response: {
-      201: JSONSuccessResponse<Challenge>;
-      400: JSONErrorResponse;
-      401: JSONErrorResponse;
-      500: JSONErrorResponse;
-    };
-  }
->;
+import {
+  Challenge,
+  JSONErrorResponse,
+  JSONSuccessResponse,
+  Participation,
+  Question,
+  QuestionWithAnswers,
+} from './global.type';
 
 export type HandleGetChallengeById = InferHandler<
   typeof app,
@@ -70,7 +63,7 @@ export type HandleGetChallengeParticipants = InferHandler<
       500: JSONErrorResponse;
     };
   }
->
+>;
 
 export type HandleGetChallengeQuestions = InferHandler<
   typeof app,
@@ -78,10 +71,10 @@ export type HandleGetChallengeQuestions = InferHandler<
   {
     params: { challengeId: string };
     response: {
-      200: JSONSuccessResponse<Question[]>;
+      200: JSONSuccessResponse<QuestionWithAnswers[]>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;
     };
   }
->
+>;
