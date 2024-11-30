@@ -22,6 +22,9 @@ export const handleGetChallenges: HandleGetChallenges = async ({ set }) => {
     message: 'Challenges fetched successfully.',
     links: {
       self: '/challenges',
+      challengeDetails: '/challenges/:challengeId',
+      challengeParticipants: '/challenges/:challengeId/participants',
+      challengeQuestions: '/challenges/:challengeId/questions',
     },
   };
 };

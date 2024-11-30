@@ -9,6 +9,7 @@ import {
   handleUpdateUser,
   handleCreateUserParticipation,
   handleDeleteUserChallenge
+  
 } from '../controllers/user.controller';
 
 const userRouter: Elysia = new Elysia()

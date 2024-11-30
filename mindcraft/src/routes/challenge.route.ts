@@ -11,7 +11,7 @@ const challengeRouter: Elysia = new Elysia()
   .get('/challenges/:challengeId', handleGetChallengeById)
   .get('/challenges/:challengeId/participants', handleGetChallengeParticipants)
   .get('/challenges/:challengeId/questions', handleGetChallengeQuestions)
-  
+
 
 
 export default challengeRouter;

@@ -26,6 +26,33 @@ import {
 import { Challenge } from '../types/global.type';
 import challengeService from '../services/challenge.service';
 
+export const handleGetUsers: HandleGetUsers = async ({ set }) => {
+  set.headers['content-type'] = 'application/json';
+
+  const users = await userService.getUsers();
+  if (!isServiceMethodSuccess(users)) {
+    return setError(set, users.statusCode, users.errors, null);
+  }
+
+  set.status = 200;
+  return {
+    success: true,
+    data: users.data,
+    message: 'Users data fetched successfully.',
+    links: {
+      self: '/users',
+      userDetails: '/users/:userId',
+      updateUser: '/users/:userId',
+      deleteUser: '/users/:userId',
+      userChallenges: '/users/:userId/challenges',
+      userParticipations: '/users/:userId/participations',
+      createUserChallenge: '/users/:userId/challenges',
+      createUserParticipation: '/users/:userId/participations',
+      deleteUserChallenge: '/users/:userId/challenges/:challengeId',
+    },
+  };
+};
+
 export const handleGetUserById: HandleGetUserById = async ({
   set,
   redis,
@@ -103,26 +130,14 @@ export const handleGetUserById: HandleGetUserById = async ({
     message: 'User data fetched successfully.',
     links: {
       self: `/users/${userId}`,
-    },
-  };
-};
-
-export const handleGetUsers: HandleGetUsers = async ({ set }) => {
-  set.headers['content-type'] = 'application/json';
-
-  const users = await userService.getUsers();
-  if (!isServiceMethodSuccess(users)) {
-    return setError(set, users.statusCode, users.errors, null);
-  }
-
-  set.status = 200;
-  return {
-    success: true,
-    data: users.data,
-    message: 'Users data fetched successfully.',
-    links: {
-      self: '/users',
-      userDetails: '/users/:userId',
+      users: '/users',
+      updateUser: `/users/${userId}`,
+      deleteUser: `/users/${userId}`,
+      userChallenges: `/users/${userId}/challenges`,
+      userParticipations: `/users/${userId}/participations`,
+      createUserChallenge: `/users/${userId}/challenges`,
+      createUserParticipation: `/users/${userId}/participations`,
+      deleteUserChallenge: `/users/${userId}/challenges/:challengeId`,
     },
   };
 };
@@ -222,7 +237,15 @@ export const handleUpdateUser: HandleUpdateUser = async ({
     data: userData,
     message: 'User data updated successfully.',
     links: {
-      self: `/users/${userId}`,
+      self: `/users/${userIdNumber}`,
+      users: '/users',
+      userDetails: `/users/${userIdNumber}`,
+      deleteUser: `/users/${userIdNumber}`,
+      userChallenges: `/users/${userIdNumber}/challenges`,
+      userParticipations: `/users/${userIdNumber}/participations`,
+      createUserChallenge: `/users/${userIdNumber}/challenges`,
+      createUserParticipation: `/users/${userIdNumber}/participations`,
+      deleteUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
     },
   };
 };
@@ -300,7 +323,15 @@ export const handleDeleteUser: HandleDeleteUser = async ({
     success: true,
     message: 'User deleted successfully.',
     links: {
-      self: `/users/${userId}`,
+      self: `/users/${userIdNumber}`,
+      users: '/users',
+      userDetails: `/users/${userIdNumber}`,
+      updateUser: `/users/${userIdNumber}`,
+      userChallenges: `/users/${userIdNumber}/challenges`,
+      userParticipations: `/users/${userIdNumber}/participations`,
+      createUserChallenge: `/users/${userIdNumber}/challenges`,
+      createUserParticipation: `/users/${userIdNumber}/participations`,
+      deleteUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
     },
   };
 };
@@ -347,6 +378,14 @@ export const handleGetUserChallenges: HandleGetUserChallenges = async ({
     message: 'User challenges fetched successfully.',
     links: {
       self: `/users/${userId}/challenges`,
+      users: '/users',
+      userDetails: `/users/${userId}`,
+      updateUser: `/users/${userId}`,
+      deleteUser: `/users/${userId}`,
+      userParticipations: `/users/${userId}/participations`,
+      createUserChallenge: `/users/${userId}/challenges`,
+      createUserParticipation: `/users/${userId}/participations`,
+      deleteUserChallenge: `/users/${userId}/challenges/:challengeId`,
     },
   };
 };
@@ -395,6 +434,14 @@ export const handleGetUserParticipations: HandleGetUserParticipations = async ({
     message: 'User participations fetched successfully.',
     links: {
       self: `/users/${userId}/participations`,
+      users: '/users',
+      userDetails: `/users/${userId}`,
+      updateUser: `/users/${userId}`,
+      deleteUser: `/users/${userId}`,
+      userChallenges: `/users/${userId}/challenges`,
+      createUserChallenge: `/users/${userId}/challenges`,
+      createUserParticipation: `/users/${userId}/participations`,
+      deleteUserChallenge: `/users/${userId}/challenges/:challengeId`,
     },
   };
 };
@@ -552,7 +599,15 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
     data: challengeResult.data,
     message: 'Challenge created successfully.',
     links: {
-      self: `/users/${userId}/challenges/${challengeResult.data.id}`,
+      self: `/users/${userIdNumber}/challenges/${challengeResult.data.id}`,
+      users: '/users',
+      userDetails: `/users/${userIdNumber}`,
+      updateUser: `/users/${userIdNumber}`,
+      deleteUser: `/users/${userIdNumber}`,
+      userChallenges: `/users/${userIdNumber}/challenges`,
+      userParticipations: `/users/${userIdNumber}/participations`,
+      createUserParticipation: `/users/${userIdNumber}/participations`,
+      deleteUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
     },
   };
 };
@@ -667,6 +722,14 @@ export const handleCreateUserParticipation: HandleCreateUserParticipation =
       message: 'Participation created successfully.',
       links: {
         self: `/users/${userId}/participations/${participation.data.id}`,
+        users: '/users',
+        userDetails: `/users/${userId}`,
+        updateUser: `/users/${userId}`,
+        deleteUser: `/users/${userId}`,
+        userChallenges: `/users/${userId}/challenges`,
+        userParticipations: `/users/${userId}/participations`,
+        createUserChallenge: `/users/${userId}/challenges`,
+        deleteUserChallenge: `/users/${userId}/challenges/:challengeId`,
       },
     };
   };
@@ -764,7 +827,15 @@ export const handleDeleteUserChallenge: HandleDeleteUserChallenge = async ({
     success: true,
     message: 'Challenge deleted successfully.',
     links: {
-      self: `/users/${userId}/challenges/${challengeId}`,
+      self: `/users/${userIdNumber}/challenges/${challengeIdNumber}`,
+      users: '/users',
+      userDetails: `/users/${userIdNumber}`,
+      updateUser: `/users/${userIdNumber}`,
+      deleteUser: `/users/${userIdNumber}`,
+      userChallenges: `/users/${userIdNumber}/challenges`,
+      userParticipations: `/users/${userIdNumber}/participations`,
+      createUserChallenge: `/users/${userIdNumber}/challenges`,
+      createUserParticipation: `/users/${userIdNumber}/participations`,
     },
   };
 };

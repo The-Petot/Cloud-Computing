@@ -2,6 +2,7 @@ import Elysia from 'elysia';
 import {
   handleGetParticipations,
   handleGetParticipationById,
+  
 } from '../controllers/participation.controller';
 
 const participationRouter: Elysia = new Elysia()

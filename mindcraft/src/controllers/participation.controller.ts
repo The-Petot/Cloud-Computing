@@ -30,6 +30,7 @@ export const handleGetParticipations: HandleGetUserParticipations = async ({
     data: participationsResult.data,
     links: {
       self: '/participations',
+      participationDetails: '/participations/:participationId',
     },
   };
 };
