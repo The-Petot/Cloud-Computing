@@ -1,4 +1,5 @@
-import { Jwt, Redis, User } from './types/global.type';
+import * as jose from 'jose';
+import { Redis, User } from './types/global.type';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
@@ -8,6 +9,9 @@ import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';
 import speakeasy, { GeneratedSecret } from 'speakeasy';
 import QRcode from 'qrcode';
+import { HTTPHeaders } from 'elysia/dist/types';
+import { StatusMap } from 'elysia';
+import { ElysiaCookie } from 'elysia/dist/cookies';
 
 export function getEnv(key: keyof ExtendedEnv): string {
   const value = process.env[key];
@@ -58,31 +62,73 @@ export async function isPasswordMatch(
 }
 
 export function createSessionId(userId: number): string {
-  const sessionId = `${String(userId)}:${v4()}`
+  const sessionId = `${String(userId)}:${v4()}`;
   return sessionId;
 }
 
-export async function generateAccessToken(
-  jwt: Jwt,
-  sessionId: string
+const jwtSecret = new TextEncoder().encode(getEnv('JWT_SECRET'));
+export async function generateAccessToken<T extends Record<string, unknown>>(
+  payload: T
 ): Promise<string> {
-  const accessToken = await jwt.sign({
-    sessionId,
-    
-    exp: Math.floor(Date.now() / 1000) + 60 * 60,
-  });
+  const accessToken = await new jose.SignJWT(payload)
+    .setProtectedHeader({
+      alg: 'HS256',
+    })
+    .setExpirationTime('1h')
+    .setIssuedAt()
+    .setIssuer('Mindcraft')
+    .setAudience('Mindcraft')
+    .sign(jwtSecret);
+
   return accessToken;
 }
 
-export async function generateRefreshToken(
-  jwt: Jwt,
-  sessionId: string
+export async function generateRefreshToken<T extends Record<string, unknown>>(
+  payload: T
 ): Promise<string> {
-  const refreshToken = await jwt.sign({
-    sessionId,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
-  });
-  return refreshToken;
+  const accessToken = await new jose.SignJWT(payload)
+    .setProtectedHeader({
+      alg: 'HS256',
+    })
+    .setExpirationTime('7d')
+    .setIssuedAt()
+    .setIssuer('Mindcraft')
+    .setAudience('Mindcraft')
+    .sign(jwtSecret);
+
+  return accessToken;
+}
+
+type VerifyJwtTokenSuccess = {
+  payload: jose.JWTPayload;
+  protectedHeader: jose.JWTHeaderParameters;
+};
+
+type VerifyJwtTokenError = {
+  error: string;
+};
+
+type VerifyJwtTokenResult = VerifyJwtTokenSuccess | VerifyJwtTokenError;
+
+export function isVerifyJwtTokenSuccess(
+  result: VerifyJwtTokenResult
+): result is VerifyJwtTokenSuccess {
+  return (result as VerifyJwtTokenSuccess).payload !== undefined;
+}
+
+export async function verifyJwtToken(
+  token: string
+): Promise<VerifyJwtTokenResult> {
+  try {
+    const result = await jose.jwtVerify(token, jwtSecret);
+    return result;
+  } catch (error) {
+    return {
+      error: `Unable to verify access token: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    };
+  }
 }
 
 export function generateTwoFactorSecret(): GeneratedSecret {
@@ -90,14 +136,13 @@ export function generateTwoFactorSecret(): GeneratedSecret {
   return secret;
 }
 
-
 type GenerateQRCodeSuccess = {
   qrCode: string;
-}
+};
 
 type GenerateQRCodeError = {
   error: string;
-}
+};
 
 type GenerateQRCodeResult = GenerateQRCodeSuccess | GenerateQRCodeError;
 
@@ -137,7 +182,11 @@ export async function verifyTwoFactorToken(
   return isTokenValid;
 }
 
-export async function setSessionId<T>(redis: Redis, sessionId: string, data: T): Promise<boolean> {
+export async function setSessionId<T>(
+  redis: Redis,
+  sessionId: string,
+  data: T
+): Promise<boolean> {
   try {
     await redis.set(sessionId, JSON.stringify(data));
     return true;
@@ -159,13 +208,12 @@ export async function setRefreshTokenOnRedis(
   }
 }
 
-
-type GetSessionDataSuccess = User
+type GetSessionDataSuccess = Omit<User, 'password'>;
 type GetSessionDataFailed = {
   error: string;
-  statusCode: number
-}
-type GetSessionDataResult = GetSessionDataSuccess | GetSessionDataFailed
+  statusCode: number;
+};
+type GetSessionDataResult = GetSessionDataSuccess | GetSessionDataFailed;
 
 export function isGetSessionDataSuccess(
   result: GetSessionDataResult
@@ -173,7 +221,10 @@ export function isGetSessionDataSuccess(
   return (result as GetSessionDataSuccess).email !== undefined;
 }
 
-export async function getSessionData(redis: Redis, sessionId: string): Promise<GetSessionDataResult> {
+export async function getSessionData(
+  redis: Redis,
+  sessionId: string
+): Promise<GetSessionDataResult> {
   try {
     const data = await redis.get(sessionId);
     if (!data) {
@@ -186,6 +237,114 @@ export async function getSessionData(redis: Redis, sessionId: string): Promise<G
         error instanceof Error ? error.message : 'Unknown error'
       }`,
       statusCode: 500,
+    };
+  }
+}
+
+export type BaseError = {
+  field?: string;
+  messages: string[];
+};
+
+export type Errors = BaseError[];
+
+export const setError = (
+  set: {
+    headers: HTTPHeaders;
+    status?: number | keyof StatusMap;
+    redirect?: string;
+    cookie?: Record<string, ElysiaCookie>;
+  },
+  statusCode: number,
+  errors: Errors | null,
+  messages: string[] | null
+) => {
+  const response: { success: boolean; errors: Errors } = {
+    success: false,
+    errors: [],
+  };
+  set.status = statusCode;
+
+  if (errors !== null) {
+    response.errors = errors;
+  }
+
+  if (messages !== null) {
+    response.errors.push({ messages });
+  }
+
+  return response;
+};
+
+export const setFieldError = (
+  set: {
+    headers: HTTPHeaders;
+    status?: number | keyof StatusMap;
+    redirect?: string;
+    cookie?: Record<string, ElysiaCookie>;
+  },
+  statusCode: number,
+  field: string,
+  messages: string[]
+) => {
+  return setError(set, statusCode, [{ field, messages }], null);
+};
+
+export function isANumber(param: string | number): boolean {
+  return !isNaN(Number(param));
+}
+
+export function handleDBError(error: unknown, message: string) {
+  return {
+    statusCode: 500,
+    errors: [
+      {
+        messages: [
+          `${message}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        ],
+      },
+    ],
+  };
+}
+
+
+
+export type GenerateQuestionsResponse = {
+  question: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  correct_answer: string;
+  explanation: string;
+}[];
+
+export type GenerateQuestionsResult = GenerateQuestionsResponse | { error: string };
+
+export function isGenerateQuestionsError(
+  result: GenerateQuestionsResult
+): result is { error: string } {
+  return (result as { error: string }).error !== undefined;
+}
+
+export async function generateQuestions(
+  material: string
+): Promise<GenerateQuestionsResult> {
+  try {
+    const result = await fetch(
+      `${getEnv('MODEL_URL')}/generate?RequestContext=${material}`
+    );
+    const data: GenerateQuestionsResponse = await result.json();
+    return data;
+  } catch (error) {
+    return {
+      error: `Unable to generate questions: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
     };
   }
 }
