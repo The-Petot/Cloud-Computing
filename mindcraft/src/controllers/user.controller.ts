@@ -519,16 +519,20 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
     if (!value) errors.push({ field, messages: [message!] });
   });
 
-  if (material.length > 3000) {
-    errors
-      .find((error) => error.field === 'material')
-      ?.messages.push('material is too long. Max: 3000 chars');
-  }
-
-  if (material.length < 100) {
-    errors
-      .find((error) => error.field === 'material')
-      ?.messages.push('material is too short. Min: 100 chars');
+  if (material.length > 3000 || material.length < 100) {
+    const errorFiled = errors.find((error) => error.field === 'material');
+    const message =
+      material.length > 3000
+        ? 'material is too long. Max: 3000 chars'
+        : 'material is too short. Min: 100 chars';
+    if (errorFiled) {
+      errorFiled.messages.push(message);
+    } else {
+      errors.push({
+        field: 'material',
+        messages: [message],
+      });
+    }
   }
 
   if (errors.length > 0) {
