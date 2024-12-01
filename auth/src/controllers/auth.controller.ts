@@ -602,6 +602,70 @@ export type GoogleUser = {
     return setError(set, 401, null, ['Email is not verified.']);
   }
 
+  const userResult = await userService.getUserByEmail(googleUser.email);
+  if (isServiceMethodSuccess<User>(userResult)) {
+    const { password, ...userData } = userResult.data;
+
+    const updateGoogleUserResult = await userService.updateGoogleUser(
+      googleUser
+    );
+    if (!isServiceMethodSuccess<User>(updateGoogleUserResult)) {
+      return setError(
+        set,
+        updateGoogleUserResult.statusCode,
+        updateGoogleUserResult.errors,
+        null
+      );
+    }
+
+    const sessionId = createSessionId(userResult.data.id!);
+    const accessToken = await generateAccessToken({
+      sessionId,
+      userId: userResult.data.id,
+    });
+    const refreshToken = await generateRefreshToken({
+      sessionId,
+      userId: userResult.data.id,
+    });
+
+    const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(
+      redis,
+      refreshToken,
+      userResult.data.id!
+    );
+    if (!isSetRefreshTokenOnRedisSuccess) {
+      return setError(set, 500, null, [
+        'Failed to store refresh token in Redis.',
+      ]);
+    }
+
+    const isSetSessionIdOnRedisSuccess = await setSessionId<User>(
+      redis,
+      sessionId,
+      userResult.data
+    );
+    if (!isSetSessionIdOnRedisSuccess) {
+      return setError(set, 500, null, ['Failed to store session ID in Redis.']);
+    }
+
+    set.status = 200;
+    set.headers['authorization'] = `Bearer ${accessToken}`;
+    set.headers['X-Refresh-Token'] = refreshToken;
+    set.headers['X-Session-Id'] = sessionId;
+
+    return {
+      success: true,
+      data: userData,
+      message: 'User logged in successfully.',
+      links: {
+        self: `/users/${userResult.data.id}`,
+        logout: '/auth/logout',
+        tokenRefresh: '/auth/refresh',
+        toggleTwoFactorAuth: '/auth/two-factor',
+      },
+    };
+  }
+
   const totalUsersResult = await userService.getTotalUsers();
   if (!isServiceMethodSuccess<{ totalUser: number }>(totalUsersResult)) {
     return setError(
@@ -626,30 +690,30 @@ export type GoogleUser = {
     updatedAt: new Date(),
   };
 
-  const createUserResult = await userService.upsert(newUser);
-  if (!isServiceMethodSuccess<User>(createUserResult)) {
+  const upsertUserResult = await userService.upsert(newUser);
+  if (!isServiceMethodSuccess<User>(upsertUserResult)) {
     return setError(
       set,
-      createUserResult.statusCode,
-      createUserResult.errors,
+      upsertUserResult.statusCode,
+      upsertUserResult.errors,
       null
     );
   }
 
-  const sessionId = createSessionId(createUserResult.data.id!);
+  const sessionId = createSessionId(upsertUserResult.data.id!);
   const accessToken = await generateAccessToken({
     sessionId,
-    userId: createUserResult.data.id,
+    userId: upsertUserResult.data.id,
   });
   const refreshToken = await generateRefreshToken({
     sessionId,
-    userId: createUserResult.data.id,
+    userId: upsertUserResult.data.id,
   });
 
   const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(
     redis,
     refreshToken,
-    createUserResult.data.id!
+    upsertUserResult.data.id!
   );
   if (!isSetRefreshTokenOnRedisSuccess) {
     return setError(set, 500, null, [
@@ -660,7 +724,7 @@ export type GoogleUser = {
   const isSetSessionIdOnRedisSuccess = await setSessionId<User>(
     redis,
     sessionId,
-    createUserResult.data
+    upsertUserResult.data
   );
   if (!isSetSessionIdOnRedisSuccess) {
     return setError(set, 500, null, ['Failed to store session ID in Redis.']);
@@ -670,14 +734,14 @@ export type GoogleUser = {
   set.headers['authorization'] = `Bearer ${accessToken}`;
   set.headers['X-Refresh-Token'] = refreshToken;
   set.headers['X-Session-Id'] = sessionId;
-  const { password, ...userData } = createUserResult.data;
+  const { password, ...userData } = upsertUserResult.data;
 
   return {
     success: true,
     data: userData,
     message: 'User logged in successfully.',
     links: {
-      self: `/users/${createUserResult.data.id}`,
+      self: `/users/${upsertUserResult.data.id}`,
       logout: '/auth/logout',
       tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',

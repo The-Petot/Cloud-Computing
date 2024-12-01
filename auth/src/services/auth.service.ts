@@ -3,6 +3,7 @@ import db from '../database/db';
 import { usersTable } from '../database/schema';
 import { ServiceMethodReturnType } from '../types/service.type';
 import { User } from '../types/global.types';
+import { GoogleUser } from '../utils';
 
 const userService = {
   async create(user: User): Promise<ServiceMethodReturnType<User>> {
@@ -102,10 +103,33 @@ const userService = {
           },
         })
         .returning();
-      
+
       return {
         data: newUser,
-      }
+      };
+    } catch (error) {
+      return handleDbError(error);
+    }
+  },
+  async updateGoogleUser(
+    user: GoogleUser
+  ): Promise<ServiceMethodReturnType<User>> {
+    try {
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set({
+          email: user.email!,
+          firstName: user.given_name!,
+          lastName: user.family_name!,
+          profileImgUrl: user.picture!,
+          updatedAt: new Date(),
+        })
+        .where(eq(usersTable.email, user.email!))
+        .returning();
+
+      return updatedUser
+        ? { data: updatedUser }
+        : createError(404, 'User not found');
     } catch (error) {
       return handleDbError(error);
     }
