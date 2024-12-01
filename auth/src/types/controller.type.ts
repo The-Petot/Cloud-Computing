@@ -99,9 +99,9 @@ export type HandleGoogleOAuth = InferHandler<
   typeof app,
   '/oauth/google',
   {
-    params: { token: string };
+    body: { token: string };
     response: {
-      200: JSONSuccessResponse<{ userId: number }>;
+      200: JSONSuccessResponse<Omit<User, "password">>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;
