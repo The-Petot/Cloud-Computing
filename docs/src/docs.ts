@@ -33,6 +33,8 @@ const app = new Elysia()
                     token: {
                       type: 'string',
                       example: '123456',
+                      description:
+                        "The user's two-factor authentication token from the authenticator app.",
                       nullable: true,
                     },
                   },
@@ -79,12 +81,12 @@ const app = new Elysia()
                           createdAt: {
                             type: 'string',
                             format: 'date-time',
-                            example: '2023-01-01T00:00:00Z',
+                            example: '2023-01-01 00:00:00',
                           },
                           updatedAt: {
                             type: 'string',
                             format: 'date-time',
-                            example: '2023-01-01T00:00:00Z',
+                            example: '2023-01-01 00:00:00',
                           },
                         },
                         required: [
@@ -110,12 +112,21 @@ const app = new Elysia()
                         properties: {
                           self: { type: 'string', example: '/users/1' },
                           logout: { type: 'string', example: '/auth/logout' },
+                          tokenRefresh: {
+                            type: 'string',
+                            example: '/auth/refresh',
+                          },
                           toggleTwoFactorAuth: {
                             type: 'string',
                             example: '/auth/two-factor',
                           },
                         },
-                        required: ['self', 'logout', 'toggleTwoFactorAuth'],
+                        required: [
+                          'self',
+                          'logout',
+                          'toggleTwoFactorAuth',
+                          'tokenRefresh',
+                        ],
                       },
                     },
                     required: ['success', 'data', 'message', 'links'],
@@ -123,10 +134,29 @@ const app = new Elysia()
                 },
               },
               headers: {
-                'Authorization': {
-                  description: 'Access'
-                }
-              }
+                Authorization: {
+                  description: 'Access token',
+                  schema: {
+                    type: 'string',
+                    example: 'Bearer accessToken123',
+                  },
+                  required: true,
+                },
+                'X-Refresh-Token': {
+                  description: 'Refresh token',
+                  schema: {
+                    type: 'string',
+                    example: 'refreshToken',
+                  },
+                },
+                'X-Session-Id': {
+                  description: 'Session ID',
+                  schema: {
+                    type: 'string',
+                    example: 'sessionId',
+                  },
+                },
+              },
             },
             400: {
               description: 'Bad Request',
@@ -183,7 +213,7 @@ const app = new Elysia()
                             messages: {
                               type: 'array',
                               items: { type: 'string' },
-                              example: ['Incorrect password.']
+                              example: ['Incorrect password.'],
                             },
                             field: { type: 'string', example: 'password' },
                           },
@@ -212,7 +242,7 @@ const app = new Elysia()
                             messages: {
                               type: 'array',
                               items: { type: 'string' },
-                              example: ['An unexpected error occurred.']
+                              example: ['An unexpected error occurred.'],
                             },
                           },
                           required: ['messages'],
@@ -240,7 +270,11 @@ const app = new Elysia()
                   type: 'object',
                   properties: {
                     email: { type: 'string', example: 'user@example.com' },
-                    password: { type: 'string', example: 'password123' },
+                    password: {
+                      type: 'string',
+                      example: 'password123',
+                      description: 'At least 8 characters long',
+                    },
                     firstName: { type: 'string', example: 'John' },
                     lastName: { type: 'string', example: 'Doe' },
                   },
@@ -275,6 +309,10 @@ const app = new Elysia()
                           self: { type: 'string', example: '/users/1' },
                           login: { type: 'string', example: '/auth/login' },
                           logout: { type: 'string', example: '/auth/logout' },
+                          tokenRefresh: {
+                            type: 'string',
+                            example: '/auth/refresh',
+                          },
                           toggleTwoFactorAuth: {
                             type: 'string',
                             example: '/auth/two-factor',
@@ -284,6 +322,7 @@ const app = new Elysia()
                           'self',
                           'login',
                           'logout',
+                          'tokenRefresh',
                           'toggleTwoFactorAuth',
                         ],
                       },
@@ -306,32 +345,20 @@ const app = new Elysia()
                         items: {
                           type: 'object',
                           properties: {
+                            field: { type: 'string' },
                             messages: {
                               type: 'array',
                               items: { type: 'string' },
                             },
-                            field: { type: 'string' },
                           },
                           required: ['messages', 'field'],
                         },
                         example: [
                           {
                             field: 'email',
-                            messages: ['Email is missing.'],
+                            messages: ['Email is not valid.'],
                           },
-                          {
-                            field: 'password',
-                            messages: ['Password is missing.'],
-                          },
-                          {
-                            field: 'firstName',
-                            messages: ['First name is missing.'],
-                          },
-                          {
-                            field: 'lastName',
-                            messages: ['Last name is missing.'],
-                          }
-                        ]
+                        ],
                       },
                     },
                     required: ['success', 'errors'],
@@ -355,7 +382,7 @@ const app = new Elysia()
                             messages: {
                               type: 'array',
                               items: { type: 'string' },
-                              example: ['User already exists.']
+                              example: ['User already exists.'],
                             },
                             field: { type: 'string', example: 'email' },
                           },
@@ -384,7 +411,7 @@ const app = new Elysia()
                             messages: {
                               type: 'array',
                               items: { type: 'string' },
-                              example: ['An unexpected error occurred.']
+                              example: ['An unexpected error occurred.'],
                             },
                           },
                           required: ['messages'],
@@ -420,6 +447,60 @@ const app = new Elysia()
                       },
                     },
                     required: ['success', 'message'],
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad Request',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            401: {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
                   },
                 },
               },
