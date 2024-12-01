@@ -33,8 +33,7 @@ import {
   HandleToggleTwoFactor,
 } from '../types/controller.type';
 
-
-export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
+export const handleUserRegister: HandleUserRegister = async ({ set, body }) => {
   set.headers['content-type'] = 'application/json';
   set.headers['accept'] = 'application/json';
 
@@ -44,9 +43,21 @@ export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
   const errors: BaseError = [];
   const validations = [
     { field: 'email', value: email, errorMessage: 'Email is missing.' },
-    { field: 'password', value: password, errorMessage: 'Password is missing.' },
-    { field: 'firstName', value: firstName, errorMessage: 'First name is missing.' },
-    { field: 'lastName', value: lastName, errorMessage: 'Last name is missing.' },
+    {
+      field: 'password',
+      value: password,
+      errorMessage: 'Password is missing.',
+    },
+    {
+      field: 'firstName',
+      value: firstName,
+      errorMessage: 'First name is missing.',
+    },
+    {
+      field: 'lastName',
+      value: lastName,
+      errorMessage: 'Last name is missing.',
+    },
   ];
 
   for (const { field, value, errorMessage } of validations) {
@@ -64,7 +75,9 @@ export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
     return setFieldError(set, 400, 'email', ['Email format is invalid.']);
 
   if (!isPasswordValid(trimmedPassword))
-    return setFieldError(set, 400, 'password', ['Password must be at least 8 characters long.']);
+    return setFieldError(set, 400, 'password', [
+      'Password must be at least 8 characters long.',
+    ]);
 
   const hashedPassword = await hashPassword(trimmedPassword);
   if (!hashedPassword)
@@ -72,7 +85,12 @@ export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
 
   const totalUserResult = await userService.getTotalUsers();
   if (!isServiceMethodSuccess<{ totalUser: number }>(totalUserResult)) {
-    return setError(set, totalUserResult.statusCode, totalUserResult.errors, null);
+    return setError(
+      set,
+      totalUserResult.statusCode,
+      totalUserResult.errors,
+      null
+    );
   }
 
   const user: User = {
@@ -91,15 +109,18 @@ export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
 
   const createUserResult = await userService.create(user);
   if (!isServiceMethodSuccess<User>(createUserResult)) {
-    return setError(set, createUserResult.statusCode, createUserResult.errors, null);
+    return setError(
+      set,
+      createUserResult.statusCode,
+      createUserResult.errors,
+      null
+    );
   }
 
   set.status = 201;
-  const { password: pass, ...userData } = createUserResult.data;
-
   return {
     success: true,
-    data: userData,
+    data: { userId: createUserResult.data.id },
     message: 'User created successfully.',
     links: {
       self: `/users/${createUserResult.data.id}`,
@@ -109,7 +130,7 @@ export const handleUserRegister: HandleUserRegister = async ({set, body}) => {
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
-}
+};
 
 export const handleUserLogin: HandleUserLogin = async ({
   body,
@@ -123,7 +144,7 @@ export const handleUserLogin: HandleUserLogin = async ({
 
   const { email, password, token } = body;
   const erros: BaseError = [];
-  
+
   const validations = [
     { field: 'email', value: email, errorMessage: 'Email is missing.' },
     {
@@ -457,7 +478,9 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   if (errors.length > 0) return setError(set, 400, errors, null);
 
   if (enable !== 'true' && enable !== 'false') {
-    return setFieldError(set, 400, 'enable', ['Invalid value for enable flag: must be either "true" or "false".']);
+    return setFieldError(set, 400, 'enable', [
+      'Invalid value for enable flag: must be either "true" or "false".',
+    ]);
   }
 
   const userResult = await userService.getUserById(userId);
@@ -542,7 +565,11 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   };
 };
 
-export const handleGoogleOAuth: HandleGoogleOAuth = async ({ set, body, redis }) => {
+export const handleGoogleOAuth: HandleGoogleOAuth = async ({
+  set,
+  body,
+  redis,
+}) => {
   set.headers['content-type'] = 'application/json';
   set.headers['accept'] = 'application/json';
   /*
@@ -597,23 +624,44 @@ export type GoogleUser = {
     profileImgUrl: googleUser.picture,
     createdAt: new Date(),
     updatedAt: new Date(),
-  }
+  };
 
   const createUserResult = await userService.upsert(newUser);
   if (!isServiceMethodSuccess<User>(createUserResult)) {
-    return setError(set, createUserResult.statusCode, createUserResult.errors, null);
+    return setError(
+      set,
+      createUserResult.statusCode,
+      createUserResult.errors,
+      null
+    );
   }
 
   const sessionId = createSessionId(createUserResult.data.id!);
-  const accessToken = await generateAccessToken({ sessionId, userId: createUserResult.data.id });
-  const refreshToken = await generateRefreshToken({ sessionId, userId: createUserResult.data.id });
-  
-  const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(redis, refreshToken, createUserResult.data.id!);
+  const accessToken = await generateAccessToken({
+    sessionId,
+    userId: createUserResult.data.id,
+  });
+  const refreshToken = await generateRefreshToken({
+    sessionId,
+    userId: createUserResult.data.id,
+  });
+
+  const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(
+    redis,
+    refreshToken,
+    createUserResult.data.id!
+  );
   if (!isSetRefreshTokenOnRedisSuccess) {
-    return setError(set, 500, null, ['Failed to store refresh token in Redis.']);
+    return setError(set, 500, null, [
+      'Failed to store refresh token in Redis.',
+    ]);
   }
 
-  const isSetSessionIdOnRedisSuccess = await setSessionId<User>(redis, sessionId, createUserResult.data);
+  const isSetSessionIdOnRedisSuccess = await setSessionId<User>(
+    redis,
+    sessionId,
+    createUserResult.data
+  );
   if (!isSetSessionIdOnRedisSuccess) {
     return setError(set, 500, null, ['Failed to store session ID in Redis.']);
   }
@@ -635,4 +683,4 @@ export type GoogleUser = {
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
-}
+};
