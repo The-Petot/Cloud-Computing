@@ -359,7 +359,6 @@ export const handleUserLogout: HandleUserLogout = async ({
   set,
   redis,
   accessToken,
-  refreshToken,
   sessionId,
 }) => {
   set.headers['content-type'] = 'application/json';
@@ -375,11 +374,6 @@ export const handleUserLogout: HandleUserLogout = async ({
       field: 'sessionId',
       value: sessionId,
       errorMessage: 'Session ID is missing.',
-    },
-    {
-      field: 'refreshToken',
-      value: refreshToken,
-      errorMessage: 'Refresh token is missing.',
     },
     {
       field: 'accessToken',
