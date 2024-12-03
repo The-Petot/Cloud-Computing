@@ -425,6 +425,7 @@ export const handleUserLogout: HandleUserLogout = async ({
       login: '/auth/login',
       tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
+      getTwoFactorQR: '/auth/two-factor/qr',
     },
   };
 };
@@ -542,57 +543,8 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
 
 export const handleGetTwoFactorQR: HandleGetTwoFactorQR = async ({
   set,
-  body,
-  accessToken,
-  sessionId,
-  redis,
 }) => {
   set.headers['content-type'] = 'application/json';
-  set.headers['accept'] = 'application/json';
-
-  if (!body) return setError(set, 400, null, ['Request body is missing.']);
-
-  const { userId } = body;
-  const errors: BaseError = [];
-  const validations = [
-    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
-    {
-      field: 'sessionId',
-      value: sessionId,
-      errorMessage: 'Session ID is missing.',
-    },
-    {
-      field: 'accessToken',
-      value: accessToken,
-      errorMessage: 'Access token is missing.',
-    },
-  ];
-
-  for (const { field, value, errorMessage } of validations) {
-    if (!value) errors.push({ messages: [errorMessage], field });
-  }
-
-  if (errors.length > 0) return setError(set, 400, errors, null);
-
-  const userResult = await userService.getUserById(userId);
-  if (!isServiceMethodSuccess<User>(userResult)) {
-    return setError(set, userResult.statusCode, userResult.errors, null);
-  }
-
-  const decodedAccessToken = await verifyJwtToken(accessToken!);
-  if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
-    return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
-  }
-
-  const userSessionData = await getSessionData(redis, sessionId!);
-  if (!isGetSessionDataSuccess(userSessionData)) {
-    return setError(
-      set,
-      userSessionData.statusCode,
-      userSessionData.errors,
-      null
-    );
-  }
 
   const secret = generateTwoFactorSecret();
   const qrCode = await generateQRCode(secret.otpauth_url!);
@@ -609,7 +561,7 @@ export const handleGetTwoFactorQR: HandleGetTwoFactorQR = async ({
     },
     message: 'Two-factor authentication QR code generated successfully.',
     links: {
-      self: `/users/${userId}`,
+      self: `/auth/two-factor`,
       login: '/auth/login',
       logout: '/auth/logout',
       toggleTwoFactorAuth: '/auth/two-factor',
