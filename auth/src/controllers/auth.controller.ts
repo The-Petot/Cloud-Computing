@@ -31,6 +31,7 @@ import {
   HandleUserLogout,
   HandleGoogleOAuth,
   HandleToggleTwoFactor,
+  HandleGetTwoFactorQR,
 } from '../types/controller.type';
 
 export const handleUserRegister: HandleUserRegister = async ({ set, body }) => {
@@ -442,7 +443,7 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   if (!body) return setError(set, 400, null, ['Request body is missing.']);
   if (!query) return setError(set, 400, null, ['Query parameter is missing.']);
 
-  const { userId } = body;
+  const { userId, secret, token } = body;
   const { enable } = query;
 
   const errors: BaseError = [];
@@ -463,6 +464,12 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
       value: accessToken,
       errorMessage: 'Access token is missing.',
     },
+    {
+      field: 'secret',
+      value: secret,
+      errorMessage: '2FA Secret is missing.',
+    },
+    { field: 'token', value: token, errorMessage: '2FA Token is missing.' },
   ];
 
   for (const { field, value, errorMessage } of validations) {
@@ -473,7 +480,7 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
 
   if (enable !== 'true' && enable !== 'false') {
     return setFieldError(set, 400, 'enable', [
-      'Invalid value for enable flag: must be either "true" or "false".',
+      'Invalid value for enable flag: must be either true or false.',
     ]);
   }
 
@@ -498,25 +505,15 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   }
 
   const enableTwoFactorAuth = enable === 'true';
-
-  if (userResult.data.twoFactorEnabled === enableTwoFactorAuth) {
-    return setError(set, 400, null, [
-      `Two-factor authentication is already ${
-        enableTwoFactorAuth ? 'enabled' : 'disabled'
-      }.`,
-    ]);
-  }
-
-  const secret = generateTwoFactorSecret();
-  const qrCode = await generateQRCode(secret.otpauth_url!);
-  if (!isGenerateQRCodeSuccess(qrCode)) {
-    return setError(set, 500, null, ['Failed to generate QR code.']);
+  const verifyTwoFactorTokenResult = await verifyTwoFactorToken(secret, token);
+  if (!verifyTwoFactorTokenResult) {
+    return setFieldError(set, 401, 'token', ['Invalid two-factor authentication token.']);
   }
 
   const updatedUserResult = await userService.toggleTwoFactorAuth(
     userId,
     enableTwoFactorAuth,
-    secret.base32
+    secret
   );
   if (!isServiceMethodSuccess<{ userId: number }>(updatedUserResult)) {
     return setError(
@@ -528,28 +525,89 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   }
 
   set.status = 200;
-
-  if (enableTwoFactorAuth) {
-    return {
-      success: true,
-      data: {
-        userId: updatedUserResult.data.userId,
-        qrCode: qrCode.qrCode,
-        secret: secret.base32,
-      },
-      message: `Two-factor authentication enabled successfully.`,
-      links: {
-        self: `/users/${userId}`,
-        login: '/auth/login',
-        logout: '/auth/logout',
-        toggleTwoFactorAuth: '/auth/two-factor',
-      },
-    };
-  }
-
+  
   return {
     success: true,
-    message: `Two-factor authentication disabled successfully.`,
+    message: `Two-factor authentication ${
+      enableTwoFactorAuth ? 'enabled' : 'disabled'
+    } successfully.`,
+    links: {
+      self: `/users/${userId}`,
+      login: '/auth/login',
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
+  };
+};
+
+export const handleGetTwoFactorQR: HandleGetTwoFactorQR = async ({
+  set,
+  body,
+  accessToken,
+  sessionId,
+  redis,
+}) => {
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
+
+  const { userId } = body;
+  const errors: BaseError = [];
+  const validations = [
+    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
+    {
+      field: 'sessionId',
+      value: sessionId,
+      errorMessage: 'Session ID is missing.',
+    },
+    {
+      field: 'accessToken',
+      value: accessToken,
+      errorMessage: 'Access token is missing.',
+    },
+  ];
+
+  for (const { field, value, errorMessage } of validations) {
+    if (!value) errors.push({ messages: [errorMessage], field });
+  }
+
+  if (errors.length > 0) return setError(set, 400, errors, null);
+
+  const userResult = await userService.getUserById(userId);
+  if (!isServiceMethodSuccess<User>(userResult)) {
+    return setError(set, userResult.statusCode, userResult.errors, null);
+  }
+
+  const decodedAccessToken = await verifyJwtToken(accessToken!);
+  if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
+    return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
+  }
+
+  const userSessionData = await getSessionData(redis, sessionId!);
+  if (!isGetSessionDataSuccess(userSessionData)) {
+    return setError(
+      set,
+      userSessionData.statusCode,
+      userSessionData.errors,
+      null
+    );
+  }
+
+  const secret = generateTwoFactorSecret();
+  const qrCode = await generateQRCode(secret.otpauth_url!);
+  if (!isGenerateQRCodeSuccess(qrCode)) {
+    return setError(set, 500, null, ['Failed to generate QR code.']);
+  }
+
+  set.status = 200;
+  return {
+    success: true,
+    data: {
+      qrCode: qrCode.qrCode,
+      secret: secret.base32,
+    },
+    message: 'Two-factor authentication QR code generated successfully.',
     links: {
       self: `/users/${userId}`,
       login: '/auth/login',
