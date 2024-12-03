@@ -85,7 +85,7 @@ export type HandleUpdateUser = InferHandler<
   typeof app,
   '/users/:userId',
   {
-    body: { newUserData: Partial<User> };
+    body: { newUserData: Partial<User>, profileImage?: File };
     params: { userId: string };
     response: {
       200: JSONSuccessResponse<Partial<Omit<User, 'password'>>>;

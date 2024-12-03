@@ -1,5 +1,5 @@
-import { Elysia } from 'elysia';
-import { getEnv } from './utils';
+import { Elysia, t } from 'elysia';
+import { getEnv, setError } from './utils';
 import { cors } from '@elysiajs/cors';
 import { logger } from '@bogeychan/elysia-logger';
 import bcrypt from 'bcrypt';

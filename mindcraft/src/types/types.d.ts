@@ -11,5 +11,8 @@ export interface ExtendedEnv extends Bun.env {
   JWT_SECRET: string
   REDIS_URL_DEV: string;
   REDIS_URL_PROD: string;
-  MODEL_URL: string;
+  QUESTION_MODEL_URL: string;
+  SUMMARY_MODEL_URL: string;
+  PATH_TO_SERVICEACCOUNTKEY: string;
+  BUCKET_NAME: string;
 }
