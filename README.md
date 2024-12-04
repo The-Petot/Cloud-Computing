@@ -1,5 +1,7 @@
-# Api Test For Auth 
+# Notification API 
 ### TODO
+- Send Notif
+
 ```
 NPM INSTALL
 ```
