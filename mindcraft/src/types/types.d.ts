@@ -15,4 +15,5 @@ export interface ExtendedEnv extends Bun.env {
   SUMMARY_MODEL_URL: string;
   PATH_TO_SERVICEACCOUNTKEY: string;
   BUCKET_NAME: string;
+  TEST: string;
 }

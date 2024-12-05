@@ -240,7 +240,7 @@ export const handleUpdateUser: HandleUpdateUser = async ({
       return setError(set, 500, null, [uploadResult.error]);
     }
 
-    newUserData.profileImgUrl = uploadResult.url
+    newUserData.profileImgUrl = uploadResult.url;
   }
 
   const user = await userService.updateUser(userIdNumber, newUserData);

@@ -12,6 +12,7 @@ const app = new Elysia()
           version: "1.0.0",
         },
       },
+      path: "/docs",
     })
   )
 
@@ -983,35 +984,6 @@ const app = new Elysia()
           summary: "Get Two-Factor Authentication QR Code",
           description:
             "Generates and retrieves the QR code for setting up two-factor authentication for a user.",
-          parameters: [
-            {
-              in: "query",
-              name: "userId",
-              schema: {
-                type: "number",
-                example: 1,
-              },
-              required: true,
-            },
-            {
-              in: "header",
-              name: "Authorization",
-              schema: {
-                type: "string",
-                example: "Bearer accessToken123",
-              },
-              required: true,
-            },
-            {
-              in: "header",
-              name: "X-Session-Id",
-              schema: {
-                type: "string",
-                example: "sessionId",
-              },
-              required: true,
-            },
-          ],
           responses: {
             200: {
               description:
