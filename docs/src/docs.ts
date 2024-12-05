@@ -430,9 +430,22 @@ const app = new Elysia()
 
       .post("/logout", () => {}, {
         detail: {
-          tags: ["Auth"],
-          summary: "User Logout",
-          description: "Logs out a user and invalidates the session.",
+          tags: ['Auth'],
+          summary: 'User Logout',
+          description: 'Logs out a user and invalidates the session.',
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    userId: { type: 'number', example: 1 },
+                  },
+                  required: ['userId'],
+                },
+              },
+            },
+          },
           parameters: [
             {
               in: "header",

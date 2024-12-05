@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { getEnv } from './utils';
+import { getEnv } from './libs/index';
 import authRouter from './routes/auth.route';
 import { jwt } from '@elysiajs/jwt';
 import { cors } from '@elysiajs/cors';

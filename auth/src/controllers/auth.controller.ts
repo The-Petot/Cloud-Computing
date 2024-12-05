@@ -21,7 +21,9 @@ import {
   setError,
   verifyJwtToken,
   isVerifyJwtTokenSuccess,
-} from '../utils';
+  getGoogleUser,
+  isFetchGoogleUserSuccess,
+} from '../libs/index';
 import {
   HandleTokenRefresh,
   HandleUserLogin,
@@ -29,9 +31,10 @@ import {
   HandleUserLogout,
   HandleGoogleOAuth,
   HandleToggleTwoFactor,
-} from '../types/controller.type';
+  HandleGetTwoFactorQR,
+} from '../types/controller.types';
 
-export const handleUserRegister: HandleUserRegister = async ({ body, set }) => {
+export const handleUserRegister: HandleUserRegister = async ({ set, body }) => {
   set.headers['content-type'] = 'application/json';
   set.headers['accept'] = 'application/json';
 
@@ -65,7 +68,7 @@ export const handleUserRegister: HandleUserRegister = async ({ body, set }) => {
   if (errors.length > 0) return setError(set, 400, errors, null);
 
   const trimmedEmail = email.trim();
-  const trimmedPassword = password.trim();
+  const trimmedPassword = password!.trim();
   const trimmedFirstName = firstName.trim();
   const trimmedLastName = lastName.trim();
 
@@ -77,32 +80,35 @@ export const handleUserRegister: HandleUserRegister = async ({ body, set }) => {
       'Password must be at least 8 characters long.',
     ]);
 
-  const totalUsersResult = await userService.getTotalUsers();
-  if (!isServiceMethodSuccess<{ totalUser: number }>(totalUsersResult)) {
+  const hashedPassword = await hashPassword(trimmedPassword);
+  if (!hashedPassword)
+    return setError(set, 500, null, ['Failed to hash password.']);
+
+  const totalUserResult = await userService.getTotalUsers();
+  if (!isServiceMethodSuccess<{ totalUser: number }>(totalUserResult)) {
     return setError(
       set,
-      totalUsersResult.statusCode,
-      totalUsersResult.errors,
+      totalUserResult.statusCode,
+      totalUserResult.errors,
       null
     );
   }
 
-  const totalUsers = totalUsersResult.data.totalUser;
-  const newUser: User = {
+  const user: User = {
     email: trimmedEmail,
-    password: await hashPassword(trimmedPassword),
+    password: hashedPassword,
     firstName: trimmedFirstName,
     lastName: trimmedLastName,
     totalScore: 0,
-    currentRank: totalUsers + 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    currentRank: totalUserResult.data.totalUser + 1,
     notificationEnabled: false,
     twoFactorEnabled: false,
-    profileImgUrl: `https://avatar.iran.liara.run/username?username=${trimmedFirstName[0]}+${trimmedLastName[0]}`,
+    profileImgUrl: `https://avatar.iran.liara.run/username?username=${firstName[0]}+${lastName[0]}`,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  const createUserResult = await userService.create(newUser);
+  const createUserResult = await userService.create(user);
   if (!isServiceMethodSuccess<User>(createUserResult)) {
     return setError(
       set,
@@ -115,12 +121,13 @@ export const handleUserRegister: HandleUserRegister = async ({ body, set }) => {
   set.status = 201;
   return {
     success: true,
-    data: { userId: createUserResult.data.id! },
-    message: 'User registered successfully.',
+    data: { userId: createUserResult.data.id },
+    message: 'User created successfully.',
     links: {
       self: `/users/${createUserResult.data.id}`,
       login: '/auth/login',
       logout: '/auth/logout',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
@@ -138,7 +145,7 @@ export const handleUserLogin: HandleUserLogin = async ({
 
   const { email, password, token } = body;
   const erros: BaseError = [];
-  
+
   const validations = [
     { field: 'email', value: email, errorMessage: 'Email is missing.' },
     {
@@ -177,7 +184,7 @@ export const handleUserLogin: HandleUserLogin = async ({
       'Two-factor authentication token is missing.',
     ]);
 
-  if (!(await isPasswordMatch(trimmedPassword, user.password)))
+  if (!(await isPasswordMatch(trimmedPassword, user.password!)))
     return setFieldError(set, 401, 'password', ['Incorrect password.']);
 
   if (
@@ -229,6 +236,7 @@ export const handleUserLogin: HandleUserLogin = async ({
     links: {
       self: `/users/${user.id}`,
       logout: '/auth/logout',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };
@@ -294,7 +302,7 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
   }
 
   const newSessionId = createSessionId(userId);
-  const accessToken = await generateAccessToken({
+  const newAccessToken = await generateAccessToken({
     sessionId: newSessionId,
     userId,
   });
@@ -331,7 +339,7 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
     ]);
 
   set.status = 200;
-  set.headers['authorization'] = `Bearer ${accessToken}`;
+  set.headers['authorization'] = `Bearer ${newAccessToken}`;
   set.headers['X-Refresh-Token'] = newRefreshToken;
   set.headers['X-Session-Id'] = newSessionId;
 
@@ -352,7 +360,6 @@ export const handleUserLogout: HandleUserLogout = async ({
   set,
   redis,
   accessToken,
-  refreshToken,
   sessionId,
 }) => {
   set.headers['content-type'] = 'application/json';
@@ -368,11 +375,6 @@ export const handleUserLogout: HandleUserLogout = async ({
       field: 'sessionId',
       value: sessionId,
       errorMessage: 'Session ID is missing.',
-    },
-    {
-      field: 'refreshToken',
-      value: refreshToken,
-      errorMessage: 'Refresh token is missing.',
     },
     {
       field: 'accessToken',
@@ -395,16 +397,6 @@ export const handleUserLogout: HandleUserLogout = async ({
   const decodedAccessToken = await verifyJwtToken(accessToken!);
   if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
     return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
-  }
-
-  const decodedRefreshToken = await verifyJwtToken(refreshToken!);
-  if (!isVerifyJwtTokenSuccess(decodedRefreshToken)) {
-    return setFieldError(set, 401, 'refreshToken', [decodedRefreshToken.error]);
-  }
-
-  const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
-  if (storedRefreshToken !== refreshToken) {
-    return setFieldError(set, 401, 'refreshToken', ['Refresh token mismatch.']);
   }
 
   const userSessionData = await getSessionData(redis, sessionId!);
@@ -431,7 +423,9 @@ export const handleUserLogout: HandleUserLogout = async ({
     links: {
       self: `/users/${userId}`,
       login: '/auth/login',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
+      getTwoFactorQR: '/auth/two-factor/qr',
     },
   };
 };
@@ -441,7 +435,6 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   body,
   query,
   accessToken,
-  refreshToken,
   sessionId,
   redis,
 }) => {
@@ -451,7 +444,7 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   if (!body) return setError(set, 400, null, ['Request body is missing.']);
   if (!query) return setError(set, 400, null, ['Query parameter is missing.']);
 
-  const { userId } = body;
+  const { userId, secret, token } = body;
   const { enable } = query;
 
   const errors: BaseError = [];
@@ -468,15 +461,16 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
       errorMessage: 'Session ID is missing.',
     },
     {
-      field: 'refreshToken',
-      value: refreshToken,
-      errorMessage: 'Refresh token is missing.',
-    },
-    {
       field: 'accessToken',
       value: accessToken,
       errorMessage: 'Access token is missing.',
     },
+    {
+      field: 'secret',
+      value: secret,
+      errorMessage: '2FA Secret is missing.',
+    },
+    { field: 'token', value: token, errorMessage: '2FA Token is missing.' },
   ];
 
   for (const { field, value, errorMessage } of validations) {
@@ -486,7 +480,9 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   if (errors.length > 0) return setError(set, 400, errors, null);
 
   if (enable !== 'true' && enable !== 'false') {
-    return setFieldError(set, 400, 'enable', ['Invalid value for enable flag: must be either "true" or "false".']);
+    return setFieldError(set, 400, 'enable', [
+      'Invalid value for enable flag: must be either true or false.',
+    ]);
   }
 
   const userResult = await userService.getUserById(userId);
@@ -497,16 +493,6 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   const decodedAccessToken = await verifyJwtToken(accessToken!);
   if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
     return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
-  }
-
-  const decodedRefreshToken = await verifyJwtToken(refreshToken!);
-  if (!isVerifyJwtTokenSuccess(decodedRefreshToken)) {
-    return setFieldError(set, 401, 'refreshToken', [decodedRefreshToken.error]);
-  }
-
-  const storedRefreshToken = await redis.get(`refresh-token:${userId}`);
-  if (storedRefreshToken !== refreshToken) {
-    return setFieldError(set, 401, 'refreshToken', ['Refresh token mismatch.']);
   }
 
   const userSessionData = await getSessionData(redis, sessionId!);
@@ -520,25 +506,15 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   }
 
   const enableTwoFactorAuth = enable === 'true';
-
-  if (userResult.data.twoFactorEnabled === enableTwoFactorAuth) {
-    return setError(set, 400, null, [
-      `Two-factor authentication is already ${
-        enableTwoFactorAuth ? 'enabled' : 'disabled'
-      }.`,
-    ]);
-  }
-
-  const secret = generateTwoFactorSecret();
-  const qrCode = await generateQRCode(secret.otpauth_url!);
-  if (!isGenerateQRCodeSuccess(qrCode)) {
-    return setError(set, 500, null, ['Failed to generate QR code.']);
+  const verifyTwoFactorTokenResult = await verifyTwoFactorToken(secret, token);
+  if (!verifyTwoFactorTokenResult) {
+    return setFieldError(set, 401, 'token', ['Invalid two-factor authentication token.']);
   }
 
   const updatedUserResult = await userService.toggleTwoFactorAuth(
     userId,
     enableTwoFactorAuth,
-    secret.base32
+    secret
   );
   if (!isServiceMethodSuccess<{ userId: number }>(updatedUserResult)) {
     return setError(
@@ -550,32 +526,228 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   }
 
   set.status = 200;
+  
+  return {
+    success: true,
+    message: `Two-factor authentication ${
+      enableTwoFactorAuth ? 'enabled' : 'disabled'
+    } successfully.`,
+    links: {
+      self: `/users/${userId}`,
+      login: '/auth/login',
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
+  };
+};
 
-  if (enableTwoFactorAuth) {
+export const handleGetTwoFactorQR: HandleGetTwoFactorQR = async ({
+  set,
+}) => {
+  set.headers['content-type'] = 'application/json';
+
+  const secret = generateTwoFactorSecret();
+  const qrCode = await generateQRCode(secret.otpauth_url!);
+  if (!isGenerateQRCodeSuccess(qrCode)) {
+    return setError(set, 500, null, ['Failed to generate QR code.']);
+  }
+
+  set.status = 200;
+  return {
+    success: true,
+    data: {
+      qrCode: qrCode.qrCode,
+      secret: secret.base32,
+    },
+    message: 'Two-factor authentication QR code generated successfully.',
+    links: {
+      self: `/auth/two-factor`,
+      login: '/auth/login',
+      logout: '/auth/logout',
+      toggleTwoFactorAuth: '/auth/two-factor',
+    },
+  };
+};
+
+export const handleGoogleOAuth: HandleGoogleOAuth = async ({
+  set,
+  body,
+  redis,
+}) => {
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+  /*
+export type GoogleUser = {
+  sub: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  email: string;
+  email_verified: boolean;
+  locale: string;
+  hd: string;
+};
+  */
+
+  if (!body) return setError(set, 400, null, ['Request body is missing.']);
+
+  const { token } = body;
+
+  if (!token) return setFieldError(set, 400, 'token', ['Token is missing.']);
+
+  const googleUserResult = await getGoogleUser(token);
+  if (!isFetchGoogleUserSuccess(googleUserResult)) {
+    return setError(set, 401, googleUserResult, null);
+  }
+
+  const googleUser = googleUserResult;
+  if (googleUser.email_verified === false) {
+    return setError(set, 401, null, ['Email is not verified.']);
+  }
+
+  const userResult = await userService.getUserByEmail(googleUser.email);
+  if (isServiceMethodSuccess<User>(userResult)) {
+    const { password, ...userData } = userResult.data;
+
+    const updateGoogleUserResult = await userService.updateGoogleUser(
+      googleUser
+    );
+    if (!isServiceMethodSuccess<User>(updateGoogleUserResult)) {
+      return setError(
+        set,
+        updateGoogleUserResult.statusCode,
+        updateGoogleUserResult.errors,
+        null
+      );
+    }
+
+    const sessionId = createSessionId(userResult.data.id!);
+    const accessToken = await generateAccessToken({
+      sessionId,
+      userId: userResult.data.id,
+    });
+    const refreshToken = await generateRefreshToken({
+      sessionId,
+      userId: userResult.data.id,
+    });
+
+    const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(
+      redis,
+      refreshToken,
+      userResult.data.id!
+    );
+    if (!isSetRefreshTokenOnRedisSuccess) {
+      return setError(set, 500, null, [
+        'Failed to store refresh token in Redis.',
+      ]);
+    }
+
+    const isSetSessionIdOnRedisSuccess = await setSessionId<User>(
+      redis,
+      sessionId,
+      userResult.data
+    );
+    if (!isSetSessionIdOnRedisSuccess) {
+      return setError(set, 500, null, ['Failed to store session ID in Redis.']);
+    }
+
+    set.status = 200;
+    set.headers['authorization'] = `Bearer ${accessToken}`;
+    set.headers['X-Refresh-Token'] = refreshToken;
+    set.headers['X-Session-Id'] = sessionId;
+
     return {
       success: true,
-      data: {
-        userId: updatedUserResult.data.userId,
-        qrCode: qrCode.qrCode,
-        secret: secret.base32,
-      },
-      message: `Two-factor authentication enabled successfully.`,
+      data: userData,
+      message: 'User logged in successfully.',
       links: {
-        self: `/users/${userId}`,
-        login: '/auth/login',
+        self: `/users/${userResult.data.id}`,
         logout: '/auth/logout',
+        tokenRefresh: '/auth/refresh',
         toggleTwoFactorAuth: '/auth/two-factor',
       },
     };
   }
 
+  const totalUsersResult = await userService.getTotalUsers();
+  if (!isServiceMethodSuccess<{ totalUser: number }>(totalUsersResult)) {
+    return setError(
+      set,
+      totalUsersResult.statusCode,
+      totalUsersResult.errors,
+      null
+    );
+  }
+
+  const totalUsers = totalUsersResult.data.totalUser;
+  const newUser: User = {
+    email: googleUser.email,
+    firstName: googleUser.given_name,
+    lastName: googleUser.family_name,
+    totalScore: 0,
+    currentRank: totalUsers + 1,
+    notificationEnabled: false,
+    twoFactorEnabled: false,
+    profileImgUrl: googleUser.picture,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const upsertUserResult = await userService.upsert(newUser);
+  if (!isServiceMethodSuccess<User>(upsertUserResult)) {
+    return setError(
+      set,
+      upsertUserResult.statusCode,
+      upsertUserResult.errors,
+      null
+    );
+  }
+
+  const sessionId = createSessionId(upsertUserResult.data.id!);
+  const accessToken = await generateAccessToken({
+    sessionId,
+    userId: upsertUserResult.data.id,
+  });
+  const refreshToken = await generateRefreshToken({
+    sessionId,
+    userId: upsertUserResult.data.id,
+  });
+
+  const isSetRefreshTokenOnRedisSuccess = await setRefreshTokenOnRedis(
+    redis,
+    refreshToken,
+    upsertUserResult.data.id!
+  );
+  if (!isSetRefreshTokenOnRedisSuccess) {
+    return setError(set, 500, null, [
+      'Failed to store refresh token in Redis.',
+    ]);
+  }
+
+  const isSetSessionIdOnRedisSuccess = await setSessionId<User>(
+    redis,
+    sessionId,
+    upsertUserResult.data
+  );
+  if (!isSetSessionIdOnRedisSuccess) {
+    return setError(set, 500, null, ['Failed to store session ID in Redis.']);
+  }
+
+  set.status = 200;
+  set.headers['authorization'] = `Bearer ${accessToken}`;
+  set.headers['X-Refresh-Token'] = refreshToken;
+  set.headers['X-Session-Id'] = sessionId;
+  const { password, ...userData } = upsertUserResult.data;
+
   return {
     success: true,
-    message: `Two-factor authentication disabled successfully.`,
+    data: userData,
+    message: 'User logged in successfully.',
     links: {
-      self: `/users/${userId}`,
-      login: '/auth/login',
+      self: `/users/${upsertUserResult.data.id}`,
       logout: '/auth/logout',
+      tokenRefresh: '/auth/refresh',
       toggleTwoFactorAuth: '/auth/two-factor',
     },
   };

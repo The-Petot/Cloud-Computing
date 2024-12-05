@@ -1,9 +1,9 @@
-import { BaseError, Jwt, Redis, User } from './types/global.types';
+import { BaseError, Redis, User } from '../types/global.types';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
-} from './types/service.type';
-import { ExtendedEnv } from './types';
+} from '../types/global.types';
+import { ExtendedEnv } from '../types';
 import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';
 import * as jose from 'jose';
@@ -30,11 +30,6 @@ export function isPasswordValid(password: string): boolean {
   return password.length >= 8;
 }
 
-export function isServiceMethodSuccess<T>(
-  result: ServiceMethodReturnType<T>
-): result is ServiceMethodSuccessReturnType<T> {
-  return (result as ServiceMethodSuccessReturnType<T>).data !== undefined;
-}
 
 export async function hashPassword(password: string): Promise<string> {
   try {
@@ -64,6 +59,12 @@ export async function isPasswordMatch(
 export function createSessionId(userId: number): string {
   const sessionId = `${String(userId)}:${v4()}`;
   return sessionId;
+}
+
+export function isServiceMethodSuccess<T>(
+  result: ServiceMethodReturnType<T>
+): result is ServiceMethodSuccessReturnType<T> {
+  return (result as ServiceMethodSuccessReturnType<T>).data !== undefined;
 }
 
 const jwtSecret = new TextEncoder().encode(getEnv('JWT_SECRET'));
@@ -254,8 +255,6 @@ export async function getSessionData(
   }
 }
 
-
-
 export const setError = (
   set: {
     headers: HTTPHeaders;
@@ -265,9 +264,12 @@ export const setError = (
   },
   statusCode: number,
   errors: BaseError | null,
-  messages: string[] | null,
+  messages: string[] | null
 ) => {
-  const response: {success: boolean, errors: BaseError} = { success: false, errors: [] };
+  const response: { success: boolean; errors: BaseError } = {
+    success: false,
+    errors: [],
+  };
   set.status = statusCode;
 
   if (errors !== null) {
@@ -275,7 +277,7 @@ export const setError = (
   }
 
   if (messages !== null) {
-    response.errors.push({ messages } );
+    response.errors.push({ messages });
   }
 
   return response;
@@ -294,3 +296,43 @@ export const setFieldError = (
 ) => {
   return setError(set, statusCode, [{ field, messages }], null);
 };
+
+export type GoogleUser = {
+  sub: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  email: string;
+  email_verified: boolean;
+  locale: string;
+  hd: string;
+};
+
+export function isFetchGoogleUserSuccess(
+  result: GoogleUser | BaseError
+): result is GoogleUser {
+  return (result as GoogleUser).sub !== undefined;
+}
+
+export async function getGoogleUser(
+  idToken: string
+): Promise<GoogleUser | BaseError> {
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${idToken}`
+    );
+    const data = await response.json();
+    return data as GoogleUser;
+  } catch (error) {
+    return [
+      {
+        messages: [
+          `Unable to get Google user: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        ],
+      },
+    ];
+  }
+}

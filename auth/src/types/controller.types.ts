@@ -20,7 +20,6 @@ export interface JSONSuccessResponse<T> {
   };
 }
 
-
 export type HandleUserRegister = InferHandler<
   typeof app,
   '/register',
@@ -37,14 +36,13 @@ export type HandleUserRegister = InferHandler<
   }
 >;
 
-
 export type HandleUserLogin = InferHandler<
   typeof app,
   '/login',
   {
-    body: { email: string; password: string, token?: string };
+    body: { email: string; password: string; token?: string };
     response: {
-      200: JSONSuccessResponse<Omit<User, "password">>;
+      200: JSONSuccessResponse<Omit<User, 'password'>>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;
@@ -64,7 +62,7 @@ export type HandleUserLogout = InferHandler<
       500: JSONErrorResponse;
     };
   }
->
+>;
 
 export type HandleTokenRefresh = InferHandler<
   typeof app,
@@ -78,14 +76,14 @@ export type HandleTokenRefresh = InferHandler<
       500: JSONErrorResponse;
     };
   }
->
+>;
 
 export type HandleToggleTwoFactor = InferHandler<
   typeof app,
   '/two-factor',
   {
     query: { enable: string };
-    body: { userId: number };
+    body: { userId: number; secret: string; token: string };
     response: {
       200: JSONSuccessResponse<{}>;
       400: JSONErrorResponse;
@@ -93,18 +91,32 @@ export type HandleToggleTwoFactor = InferHandler<
       500: JSONErrorResponse;
     };
   }
->
+>;
 
 export type HandleGoogleOAuth = InferHandler<
   typeof app,
   '/oauth/google',
   {
-    params: { token: string };
+    body: { token: string };
     response: {
-      200: JSONSuccessResponse<{ userId: number }>;
+      200: JSONSuccessResponse<Omit<User, 'password'>>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;
     };
   }
->
+>;
+
+export type HandleGetTwoFactorQR = InferHandler<
+  typeof app,
+  '/two-factor',
+  {
+    body: { userId: number };
+    response: {
+      200: JSONSuccessResponse<{ qrCode: string; secret: string }>;
+      400: JSONErrorResponse;
+      401: JSONErrorResponse;
+      500: JSONErrorResponse;
+    };
+  }
+>;

@@ -1,8 +1,9 @@
 import { eq } from 'drizzle-orm';
 import db from '../database/db';
 import { usersTable } from '../database/schema';
-import { ServiceMethodReturnType } from '../types/service.type';
+import { ServiceMethodReturnType } from '../types/global.types';
 import { User } from '../types/global.types';
+import { GoogleUser } from '../libs/index';
 
 const userService = {
   async create(user: User): Promise<ServiceMethodReturnType<User>> {
@@ -85,9 +86,55 @@ const userService = {
       return handleDbError(error);
     }
   },
+
+  async upsert(user: User): Promise<ServiceMethodReturnType<User>> {
+    try {
+      const [newUser] = await db
+        .insert(usersTable)
+        .values(user)
+        .onConflictDoUpdate({
+          target: [usersTable.email],
+          set: {
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profileImgUrl: user.profileImgUrl,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      return {
+        data: newUser,
+      };
+    } catch (error) {
+      return handleDbError(error);
+    }
+  },
+  async updateGoogleUser(
+    user: Partial<GoogleUser>
+  ): Promise<ServiceMethodReturnType<User>> {
+    try {
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set({
+          firstName: user.given_name!,
+          lastName: user.family_name!,
+          profileImgUrl: user.picture!,
+          updatedAt: new Date(),
+        })
+        .where(eq(usersTable.email, user.email!))
+        .returning();
+
+      return updatedUser
+        ? { data: updatedUser }
+        : createError(404, 'User not found');
+    } catch (error) {
+      return handleDbError(error);
+    }
+  },
 };
 
-// Utility Functions
 const createError = (statusCode: number, message: string) => ({
   errors: [{ messages: [message] }],
   statusCode,

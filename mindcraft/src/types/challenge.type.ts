@@ -1,26 +1,19 @@
 import { InferHandler } from 'elysia';
 import app from '..';
-import { Challenge, JSONErrorResponse, JSONSuccessResponse } from './global.type';
-
-export type HandleCreateChallenge = InferHandler<
-  typeof app,
-  '/challenges',
-  {
-    body: Omit<Challenge, 'id'>;
-    response: {
-      201: JSONSuccessResponse<Challenge>;
-      400: JSONErrorResponse;
-      401: JSONErrorResponse;
-      500: JSONErrorResponse;
-    };
-  }
->;
+import {
+  Challenge,
+  JSONErrorResponse,
+  JSONSuccessResponse,
+  Participation,
+  Question,
+  QuestionWithAnswers,
+} from './global.type';
 
 export type HandleGetChallengeById = InferHandler<
   typeof app,
   '/challenges/:challengeId',
   {
-    params: { challengeId: number };
+    params: { challengeId: string };
     response: {
       200: JSONSuccessResponse<Challenge>;
       400: JSONErrorResponse;
@@ -58,4 +51,30 @@ export type HandleUpdateChallenge = InferHandler<
   }
 >;
 
+export type HandleGetChallengeParticipants = InferHandler<
+  typeof app,
+  '/challenges/:challengeId/participants',
+  {
+    params: { challengeId: string };
+    response: {
+      200: JSONSuccessResponse<Participation[]>;
+      400: JSONErrorResponse;
+      401: JSONErrorResponse;
+      500: JSONErrorResponse;
+    };
+  }
+>;
 
+export type HandleGetChallengeQuestions = InferHandler<
+  typeof app,
+  '/challenges/:challengeId/questions',
+  {
+    params: { challengeId: string };
+    response: {
+      200: JSONSuccessResponse<QuestionWithAnswers[]>;
+      400: JSONErrorResponse;
+      401: JSONErrorResponse;
+      500: JSONErrorResponse;
+    };
+  }
+>;
