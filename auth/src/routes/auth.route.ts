@@ -16,7 +16,7 @@ const authRouter: Elysia = new Elysia()
   .post('/logout', handleUserLogout)
   .post('/oauth/google', handleGoogleOAuth)
   .put('/two-factor', handleToggleTwoFactor)
-  .get('/two-fator', handleGetTwoFactorQR)
+  .get('/two-factor', handleGetTwoFactorQR)
   
 
 export default authRouter;

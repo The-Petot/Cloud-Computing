@@ -1,9 +1,9 @@
-import { BaseError, Jwt, Redis, User } from './types/global.types';
+import { BaseError, Redis, User } from '../types/global.types';
 import {
   ServiceMethodReturnType,
   ServiceMethodSuccessReturnType,
-} from './types/service.type';
-import { ExtendedEnv } from './types';
+} from '../types/global.types';
+import { ExtendedEnv } from '../types';
 import bcrypt from 'bcrypt';
 import { v4 } from 'uuid';
 import * as jose from 'jose';
@@ -30,11 +30,6 @@ export function isPasswordValid(password: string): boolean {
   return password.length >= 8;
 }
 
-export function isServiceMethodSuccess<T>(
-  result: ServiceMethodReturnType<T>
-): result is ServiceMethodSuccessReturnType<T> {
-  return (result as ServiceMethodSuccessReturnType<T>).data !== undefined;
-}
 
 export async function hashPassword(password: string): Promise<string> {
   try {
@@ -64,6 +59,12 @@ export async function isPasswordMatch(
 export function createSessionId(userId: number): string {
   const sessionId = `${String(userId)}:${v4()}`;
   return sessionId;
+}
+
+export function isServiceMethodSuccess<T>(
+  result: ServiceMethodReturnType<T>
+): result is ServiceMethodSuccessReturnType<T> {
+  return (result as ServiceMethodSuccessReturnType<T>).data !== undefined;
 }
 
 const jwtSecret = new TextEncoder().encode(getEnv('JWT_SECRET'));

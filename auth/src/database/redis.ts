@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import { getEnv } from '../utils';
+import { getEnv } from '../libs/index';
 
 const redis = await createClient({
   url:
