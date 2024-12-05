@@ -23,7 +23,7 @@ import {
   isVerifyJwtTokenSuccess,
   getGoogleUser,
   isFetchGoogleUserSuccess,
-} from '../utils';
+} from '../libs/index';
 import {
   HandleTokenRefresh,
   HandleUserLogin,
@@ -32,7 +32,7 @@ import {
   HandleGoogleOAuth,
   HandleToggleTwoFactor,
   HandleGetTwoFactorQR,
-} from '../types/controller.type';
+} from '../types/controller.types';
 
 export const handleUserRegister: HandleUserRegister = async ({ set, body }) => {
   set.headers['content-type'] = 'application/json';

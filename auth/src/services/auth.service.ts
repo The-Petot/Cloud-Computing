@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
 import db from '../database/db';
 import { usersTable } from '../database/schema';
-import { ServiceMethodReturnType } from '../types/service.type';
+import { ServiceMethodReturnType } from '../types/global.types';
 import { User } from '../types/global.types';
-import { GoogleUser } from '../utils';
+import { GoogleUser } from '../libs/index';
 
 const userService = {
   async create(user: User): Promise<ServiceMethodReturnType<User>> {
@@ -112,13 +112,12 @@ const userService = {
     }
   },
   async updateGoogleUser(
-    user: GoogleUser
+    user: Partial<GoogleUser>
   ): Promise<ServiceMethodReturnType<User>> {
     try {
       const [updatedUser] = await db
         .update(usersTable)
         .set({
-          email: user.email!,
           firstName: user.given_name!,
           lastName: user.family_name!,
           profileImgUrl: user.picture!,
