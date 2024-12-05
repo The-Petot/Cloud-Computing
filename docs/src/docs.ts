@@ -963,6 +963,178 @@ const app = new Elysia()
           },
         },
       })
+
+      .get('/two-factor', () => {}, {
+        detail: {
+          tags: ['Auth'],
+          summary: 'Get Two-Factor Authentication QR Code',
+          description:
+            'Generates and retrieves the QR code for setting up two-factor authentication for a user.',
+          parameters: [
+            {
+              in: 'query',
+              name: 'userId',
+              schema: {
+                type: 'number',
+                example: 1,
+              },
+              required: true,
+            },
+            {
+              in: 'header',
+              name: 'Authorization',
+              schema: {
+                type: 'string',
+                example: 'Bearer accessToken123',
+              },
+              required: true,
+            },
+            {
+              in: 'header',
+              name: 'X-Session-Id',
+              schema: {
+                type: 'string',
+                example: 'sessionId',
+              },
+              required: true,
+            },
+          ],
+          responses: {
+            200: {
+              description:
+                'Successfully generated two-factor authentication QR code.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      message: {
+                        type: 'string',
+                        example: 'Two-factor authentication QR code generated successfully.',
+                      },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          qrCode: { type: 'string', example: 'QR_CODE_STRING' },
+                          secret: { type: 'string', example: 'BASE32_SECRET' },
+                        },
+                        required: ['qrCode', 'secret'],
+                      },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/auth/two-factor' },
+                          login: { type: 'string', example: '/auth/login' },
+                          logout: { type: 'string', example: '/auth/logout' },
+                          toggleTwoFactorAuth: {
+                            type: 'string',
+                            example: '/auth/two-factor',
+                          },
+                        },
+                        required: [
+                          'self',
+                          'login',
+                          'logout',
+                          'toggleTwoFactorAuth',
+                        ],
+                      },
+                    },
+                    required: ['success', 'message', 'data'],
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad Request',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['User ID is missing.'],
+                            },
+                            field: { type: 'string', example: 'userId' },
+                          },
+                          required: ['messages', 'field'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            401: {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Access token is not valid.'],
+                            },
+                            field: { type: 'string', example: 'accessToken' },
+                          },
+                          required: ['messages', 'field'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            500: {
+              description: 'Internal Server Error',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Failed to generate QR code.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      })
+      
       .post('/oauth/google', () => {}, {
         detail: {
           tags: ['Auth'],
@@ -1206,76 +1378,753 @@ const app = new Elysia()
           tags: ['Users'],
         },
       })
+
       .get('/:userId/challenges', () => {}, {
         detail: {
           tags: ['Users'],
         },
       })
+
       .get('/:userId/participations', () => {}, {
         detail: {
           tags: ['Users'],
         },
       })
+
       .put('/:userId', () => {}, {
         detail: {
           tags: ['Users'],
         },
       })
+
       .delete('/:userId', () => {}, {
         detail: {
           tags: ['Users'],
         },
       })
+
       .delete('/:userId/challenges/:challengeId', () => {}, {
         detail: {
           tags: ['Users'],
         },
       });
+
     return users;
   })
+
   .group('/api/v1/challenges', (challenges) => {
     challenges
+
       .get('/', () => {}, {
         detail: {
           tags: ['Challenges'],
+          summary: 'Fetch all challenges',
+          description: 'Retrieves a list of all challenges.',
+          responses: {
+            200: {
+              description: 'Challenges fetched successfully.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', example: 1 },
+                          title: { type: 'string', example: 'Soal Fisika Dasar' },
+                          description: {
+                            type: 'string',
+                            example: 'Soal soal mudah mengenai fisika dasar',
+                            nullable: true,
+                          },
+                          summary: {
+                            type: 'string',
+                            example: 'Fisika adalah ilmu pengetahuan yang menjelaskan ...',
+                            nullable: true,
+                          },
+                          tags: { type: 'string', example: 'fisika', nullable: true },
+                          authorId: { type: 'integer', example: 1 },
+                          totalQuestions: { type: 'integer', example: 5 },
+                          timeSeconds: { type: 'integer', example: 300 },
+                          createdAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2023-01-01 00:00:00',
+                          },
+                          updatedAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2023-01-01 00:10:00',
+                          },
+                        },
+                        required: ['id', 'title', 'authorId', 'totalQuestions', 'timeSeconds', 'createdAt'],
+                      },
+                      message: {
+                        type: 'string',
+                        example: 'Challenges fetched successfully.',
+                      },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/challenges' },
+                          challengeDetails: {
+                            type: 'string',
+                            example: '/challenges/:challengeId',
+                          },
+                          challengeParticipants: {
+                            type: 'string',
+                            example: '/challenges/:challengeId/participants',
+                          },
+                          challengeQuestions: {
+                            type: 'string',
+                            example: '/challenges/:challengeId/questions',
+                          },
+                        },
+                        required: ['self', 'challengeDetails', 'challengeParticipants', 'challengeQuestions'],
+                      },
+                    },
+                    required: ['success', 'data', 'message', 'links'],
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad request, invalid query parameters.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: { type: 'string', example: 'params' },
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Params is missing.'],
+                            },
+                          },
+                          required: ['field', 'messages'],
+                        },
+                        example: [
+                          {
+                            field: 'params',
+                            messages: ['Params is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId must be a number.'],
+                          },
+                        ],
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            404: {
+              description: 'Challenge not found.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Challenge not found.'],
+                            },
+                          },
+                          required: ['message'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            500: {
+              description: 'Internal server error.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['An unexpected error occurred.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+          },
         },
       })
+    
       .get('/:challengeId', () => {}, {
         detail: {
           tags: ['Challenges'],
+          summary: 'Fetch a specific challenge by ID',
+          description: 'Retrieves a specific challenge based on the given challenge ID.',
+          parameters: [
+            {
+              name: 'challengeId',
+              in: 'path',
+              required: true,
+              description: 'The ID of the challenge to fetch.',
+              schema: {
+                type: 'string',
+                example: '1',
+              },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Challenge fetched successfully.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: { $ref: 'challenges.data' },
+                      message: { type: 'string', example: 'Challenge fetched successfully.' },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/challenges/1' },
+                          challengeParticipants: { type: 'string', example: '/challenges/1/participants' },
+                          challengeQuestions: { type: 'string', example: '/challenges/1/questions' },
+                          challenges: { type: 'string', example: '/challenges' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad request, missing or invalid parameters.',
+            },
+            404: {
+              description: 'Challenge not found.',
+            },
+            500: {
+              description: 'Internal server error.',
+            },
+          },
         },
       })
+  
       .get('/:challengeId/participants', () => {}, {
         detail: {
           tags: ['Challenges'],
+          summary: 'Fetch participants of a specific challenge',
+          description: 'Retrieves all participants for a specific challenge based on the given challenge ID.',
+          parameters: [
+            {
+              name: 'challengeId',
+              in: 'path',
+              required: true,
+              description: 'The ID of the challenge to fetch participants for.',
+              schema: {
+                type: 'string',
+                example: '1',
+              },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Challenge participants fetched successfully.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: { type: 'array', items: { $ref: 'challengeParticipants.data' } },
+                      message: { type: 'string', example: 'Challenge participants fetched successfully.' },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/challenges/1/participants' },
+                          challengeDetails: { type: 'string', example: '/challenges/1' },
+                          challengeQuestions: { type: 'string', example: '/challenges/1/questions' },
+                          challenges: { type: 'string', example: '/challenges' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad request, missing or invalid parameters.',
+            },
+            404: {
+              description: 'Challenge not found.',
+            },
+            500: {
+              description: 'Internal server error.',
+            },
+          },
         },
       })
+  
       .get('/:challengeId/questions', () => {}, {
         detail: {
           tags: ['Challenges'],
+          summary: 'Fetch questions for a specific challenge',
+          description: 'Retrieves all questions for a specific challenge based on the given challenge ID.',
+          parameters: [
+            {
+              name: 'challengeId',
+              in: 'path',
+              required: true,
+              description: 'The ID of the challenge to fetch questions for.',
+              schema: {
+                type: 'string',
+                example: '1',
+              },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Challenge questions fetched successfully.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: { type: 'array', items: { $ref: 'challengeQuestions.data' } },
+                      message: { type: 'string', example: 'Challenge questions fetched successfully.' },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/challenges/1/questions' },
+                          challengeDetails: { type: 'string', example: '/challenges/1' },
+                          challengeParticipants: { type: 'string', example: '/challenges/1/participants' },
+                          challenges: { type: 'string', example: '/challenges' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad request, missing or invalid parameters.',
+            },
+            404: {
+              description: 'Challenge not found.',
+            },
+            500: {
+              description: 'Internal server error.',
+            },
+          },
         },
       })
+  
       .put('/:challengeId', () => {}, {
         detail: {
           tags: ['Challenges'],
+          summary: 'Update a specific challenge',
+          description: 'Updates the details of a specific challenge based on the provided challenge ID.',
+          parameters: [
+            {
+              name: 'challengeId',
+              in: 'path',
+              required: true,
+              description: 'The ID of the challenge to update.',
+              schema: {
+                type: 'string',
+                example: '1',
+              },
+            },
+          ],
+          requestBody: {
+            description: 'Updated challenge details.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string', example: 'New Challenge title' },
+                    description: { type: 'string', example: 'Updated description of the challenge.' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Challenge updated successfully.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: { $ref: 'challenge.data' },
+                      message: { type: 'string', example: 'Challenge updated successfully.' },
+                    },
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad request, invalid or missing parameters.',
+            },
+            404: {
+              description: 'Challenge not found.',
+            },
+            500: {
+              description: 'Internal server error.',
+            },
+          },
         },
       });
+  
     return challenges;
-  })
+  })  
+
   .group('/api/v1/participations', (participations) => {
     participations
+  
       .get('/', () => {}, {
         detail: {
           tags: ['Participations'],
+          summary: 'Get all participations',
+          description: 'Fetches all participations data.',
+          responses: {
+            200: {
+              description: 'Participations fetched successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', example: 1 },
+                          participantId: {type: 'integer', example: '15'},
+                          challengeId: { type: 'integer', example: '491' },
+                          score: { type: 'integer', example: 100 },
+                          createdAt: {type: 'string',format: 'date-time',example: '2023-01-01 00:00:00'},
+                        },
+                        required: ['id','participantId','challengeId','score','createdAt'],
+                      },
+                      message: { type: 'string', example: 'Participations fetched successfully' },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/participations' },
+                          participation: { type: 'string', example: '/participations/{id}' },
+                        },
+                        required: ['self', 'participation'],
+                      },
+                    },
+                    required: ['success', 'data', 'message', 'links'],
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad Request',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: { type: 'string', example: 'params' },
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Params is missing.'],
+                            },
+                          },
+                          required: ['field', 'messages'],
+                        },
+                        example: [
+                          {
+                            field: 'params',
+                            messages: ['Params is missing.'],
+                          },
+                          {
+                            field: 'participationId',
+                            messages: ['Participation ID is missing.'],
+                          },
+                          {
+                            field: 'participationId',
+                            messages: ['Participation ID must be a number.'],
+                          },
+                        ],
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            404: {
+              description: 'Participation not found',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Participation not found.'],
+                            },
+                          },
+                          required: ['message'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            500: {
+              description: 'Internal Server Error',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['An unexpected error occurred.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+          },
         },
       })
+  
       .get('/:participationId', () => {}, {
         detail: {
           tags: ['Participations'],
+          summary: 'Get participation by ID',
+          description: 'Fetches a single participation by its ID.',
+          parameters: [
+            {
+              name: 'participationId',
+              in: 'path',
+              required: true,
+              description: 'The ID of the participation to retrieve.',
+              schema: {
+                type: 'string',
+                example: '1',
+              },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Participation fetched successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      message: { type: 'string', example: 'Participation fetched successfully' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', example: 1 },
+                          participantId: {type: 'integer', example: '15'},
+                          challengeId: { type: 'integer', example: '491' },
+                          score: { type: 'integer', example: 100 },
+                          createdAt: {type: 'string',format: 'date-time',example: '2023-01-01 00:00:00'},
+                        },
+                        required: ['id','participantId','challengeId','score','createdAt'],
+                      },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/participations/1' },
+                          participations: { type: 'string', example: '/participations' },
+                        },
+                        required: ['self', 'participations'],
+                      },
+                    },
+                    required: ['success', 'message', 'data', 'links'],
+                  },
+                },
+              },
+            },
+            400: {
+              description: 'Bad Request',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: { type: 'string', example: 'params' },
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Params is missing.'],
+                            },
+                          },
+                          required: ['field', 'messages'],
+                        },
+                        example: [
+                          {
+                            field: 'params',
+                            messages: ['Params is missing.'],
+                          },
+                          {
+                            field: 'participationId',
+                            messages: ['Participation ID is missing.'],
+                          },
+                          {
+                            field: 'participationId',
+                            messages: ['Participation ID must be a number.'],
+                          },
+                        ],
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            404: {
+              description: 'Participation not found',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Participation not found.'],
+                            },
+                          },
+                          required: ['message'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+            500: {
+              description: 'Internal Server Error',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['An unexpected error occurred.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
+            },
+          },
         },
       });
+  
     return participations;
   })
+
   .listen(8080, () => {
     console.log('Server is running on port 8080');
   });
