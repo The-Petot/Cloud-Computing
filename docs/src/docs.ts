@@ -1619,7 +1619,38 @@ const app = new Elysia()
                     type: 'object',
                     properties: {
                       success: { type: 'boolean', example: true },
-                      data: { $ref: 'challenges.data' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', example: 1 },
+                          title: { type: 'string', example: 'Soal Fisika Dasar' },
+                          description: {
+                            type: 'string',
+                            example: 'Soal soal mudah mengenai fisika dasar',
+                            nullable: true,
+                          },
+                          summary: {
+                            type: 'string',
+                            example: 'Fisika adalah ilmu pengetahuan yang menjelaskan ...',
+                            nullable: true,
+                          },
+                          tags: { type: 'string', example: 'fisika', nullable: true },
+                          authorId: { type: 'integer', example: 1 },
+                          totalQuestions: { type: 'integer', example: 5 },
+                          timeSeconds: { type: 'integer', example: 300 },
+                          createdAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2023-01-01 00:00:00',
+                          },
+                          updatedAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2023-01-01 00:10:00',
+                          },
+                        },
+                        required: ['id', 'title', 'authorId', 'totalQuestions', 'timeSeconds', 'createdAt'],
+                      },
                       message: { type: 'string', example: 'Challenge fetched successfully.' },
                       links: {
                         type: 'object',
@@ -1629,6 +1660,7 @@ const app = new Elysia()
                           challengeQuestions: { type: 'string', example: '/challenges/1/questions' },
                           challenges: { type: 'string', example: '/challenges' },
                         },
+                        required: ['self', 'challengeParticipants', 'challengeQuestions', 'challenges'],
                       },
                     },
                   },
@@ -1636,13 +1668,103 @@ const app = new Elysia()
               },
             },
             400: {
-              description: 'Bad request, missing or invalid parameters.',
+              description: 'Bad request, invalid query parameters.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: { type: 'string', example: 'params' },
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Params is missing.'],
+                            },
+                          },
+                          required: ['field', 'messages'],
+                        },
+                        example: [
+                          {
+                            field: 'params',
+                            messages: ['Params is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId must be a number.'],
+                          },
+                        ],
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             404: {
               description: 'Challenge not found.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Challenge not found.'],
+                            },
+                          },
+                          required: ['message'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             500: {
               description: 'Internal server error.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['An unexpected error occurred.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
           },
         },
@@ -1674,7 +1796,17 @@ const app = new Elysia()
                     type: 'object',
                     properties: {
                       success: { type: 'boolean', example: true },
-                      data: { type: 'array', items: { $ref: 'challengeParticipants.data' } },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', example: 1 },
+                          participantId: {type: 'integer', example: '15'},
+                          challengeId: { type: 'integer', example: '491' },
+                          score: { type: 'integer', example: 100 },
+                          createdAt: {type: 'string',format: 'date-time',example: '2023-01-01 00:00:00'},
+                        },
+                        required: ['id','participantId','challengeId','score','createdAt'],
+                      },
                       message: { type: 'string', example: 'Challenge participants fetched successfully.' },
                       links: {
                         type: 'object',
@@ -1684,20 +1816,112 @@ const app = new Elysia()
                           challengeQuestions: { type: 'string', example: '/challenges/1/questions' },
                           challenges: { type: 'string', example: '/challenges' },
                         },
+                        required: ['self', 'challengeDetails', 'challengeQuestions', 'challenges'],
                       },
                     },
+                    required: ['success', 'data', 'message', 'links'],
                   },
                 },
               },
             },
             400: {
-              description: 'Bad request, missing or invalid parameters.',
+              description: 'Bad request, invalid query parameters.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: { type: 'string', example: 'params' },
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Params is missing.'],
+                            },
+                          },
+                          required: ['field', 'messages'],
+                        },
+                        example: [
+                          {
+                            field: 'params',
+                            messages: ['Params is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId must be a number.'],
+                          },
+                        ],
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             404: {
               description: 'Challenge not found.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Challenge not found.'],
+                            },
+                          },
+                          required: ['message'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             500: {
               description: 'Internal server error.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['An unexpected error occurred.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
           },
         },
@@ -1729,7 +1953,17 @@ const app = new Elysia()
                     type: 'object',
                     properties: {
                       success: { type: 'boolean', example: true },
-                      data: { type: 'array', items: { $ref: 'challengeQuestions.data' } },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', example: 1 },
+                          question: {type: 'string', example: 'Dimana ibukota Indonesia'},
+                          challengeId: { type: 'integer', example: 10 },
+                          explanation: { type: 'string', example: 'Ibukota Indonesia adalah Jakarta, yang merupakan ...' },
+                          createdAt: {type: 'string',format: 'date-time',example: '2023-01-01 00:00:00'},
+                        },
+                        required: ['id','question','challengeId','explanation','createdAt'],
+                      },
                       message: { type: 'string', example: 'Challenge questions fetched successfully.' },
                       links: {
                         type: 'object',
@@ -1739,20 +1973,112 @@ const app = new Elysia()
                           challengeParticipants: { type: 'string', example: '/challenges/1/participants' },
                           challenges: { type: 'string', example: '/challenges' },
                         },
+                        required: ['self','challengeDetails','challengeParticipants','challenges'],
                       },
                     },
+                    required: ['success','data','message','links'],
                   },
                 },
               },
             },
             400: {
-              description: 'Bad request, missing or invalid parameters.',
+              description: 'Bad request, invalid query parameters.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: { type: 'string', example: 'params' },
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Params is missing.'],
+                            },
+                          },
+                          required: ['field', 'messages'],
+                        },
+                        example: [
+                          {
+                            field: 'params',
+                            messages: ['Params is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId must be a number.'],
+                          },
+                        ],
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             404: {
               description: 'Challenge not found.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Challenge not found.'],
+                            },
+                          },
+                          required: ['message'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             500: {
               description: 'Internal server error.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['An unexpected error occurred.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
           },
         },
@@ -1785,6 +2111,7 @@ const app = new Elysia()
                     title: { type: 'string', example: 'New Challenge title' },
                     description: { type: 'string', example: 'Updated description of the challenge.' },
                   },
+                  required: ['success','data','message','links'],
                 },
               },
             },
@@ -1798,21 +2125,153 @@ const app = new Elysia()
                     type: 'object',
                     properties: {
                       success: { type: 'boolean', example: true },
-                      data: { $ref: 'challenge.data' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'number', example: 1 },
+                          title: { type: 'string', example: 'Soal Fisika Dasar' },
+                          description: {
+                            type: 'string',
+                            example: 'Soal soal mudah mengenai fisika dasar',
+                            nullable: true,
+                          },
+                          summary: {
+                            type: 'string',
+                            example: 'Fisika adalah ilmu pengetahuan yang menjelaskan ...',
+                            nullable: true,
+                          },
+                          tags: { type: 'string', example: 'fisika', nullable: true },
+                          authorId: { type: 'integer', example: 1 },
+                          totalQuestions: { type: 'integer', example: 5 },
+                          timeSeconds: { type: 'integer', example: 300 },
+                          createdAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2023-01-01 00:00:00',
+                          },
+                          updatedAt: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2023-01-01 00:10:00',
+                          },
+                        },
+                        required: ['id', 'title', 'authorId', 'totalQuestions', 'timeSeconds', 'createdAt'],
+                      },
                       message: { type: 'string', example: 'Challenge updated successfully.' },
+                      links: {
+                        type: 'object',
+                        properties: {
+                          self: { type: 'string', example: '/challenges/1/questions' },
+                          challengeDetails: { type: 'string', example: '/challenges/1' },
+                          challengeParticipants: { type: 'string', example: '/challenges/1/participants' },
+                          challenges: { type: 'string', example: '/challenges' },
+                        },
+                        required: ['self','challengeDetails','challengeParticipants','challenges'],
+                      },
                     },
+                    required: ['success','data','message','links'],
                   },
                 },
               },
             },
             400: {
-              description: 'Bad request, invalid or missing parameters.',
+              description: 'Bad request, invalid query parameters.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            field: { type: 'string', example: 'params' },
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Params is missing.'],
+                            },
+                          },
+                          required: ['field', 'messages'],
+                        },
+                        example: [
+                          {
+                            field: 'params',
+                            messages: ['Params is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId is missing.'],
+                          },
+                          {
+                            field: 'challengeId',
+                            messages: ['challengeId must be a number.'],
+                          },
+                        ],
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             404: {
               description: 'Challenge not found.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['Challenge not found.'],
+                            },
+                          },
+                          required: ['message'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
             500: {
               description: 'Internal server error.',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: false },
+                      errors: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            messages: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['An unexpected error occurred.'],
+                            },
+                          },
+                          required: ['messages'],
+                        },
+                      },
+                    },
+                    required: ['success', 'errors'],
+                  },
+                },
+              },
             },
           },
         },
