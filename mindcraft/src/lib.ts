@@ -2,8 +2,6 @@ import { getEnv } from './utils';
 import * as jose from 'jose';
 import { Redis, User } from './types/global.type';
 import { v4 } from 'uuid';
-import speakeasy, { GeneratedSecret } from 'speakeasy';
-import QRcode from 'qrcode';
 
 export type GenerateQuestionsResponse = {
   question: string;
@@ -146,57 +144,6 @@ export async function verifyJwtToken(
 export function createSessionId(userId: number): string {
   const sessionId = `${String(userId)}:${v4()}`;
   return sessionId;
-}
-
-export function generateTwoFactorSecret(): GeneratedSecret {
-  const secret = speakeasy.generateSecret({ name: 'Mindcraft' });
-  return secret;
-}
-
-type GenerateQRCodeSuccess = {
-  qrCode: string;
-};
-
-type GenerateQRCodeError = {
-  error: string;
-};
-
-type GenerateQRCodeResult = GenerateQRCodeSuccess | GenerateQRCodeError;
-
-export function isGenerateQRCodeSuccess(
-  result: GenerateQRCodeResult
-): result is GenerateQRCodeSuccess {
-  return (result as GenerateQRCodeSuccess).qrCode !== undefined;
-}
-
-export async function generateQRCode(
-  url: string
-): Promise<GenerateQRCodeResult> {
-  try {
-    const qrCode = await QRcode.toDataURL(url);
-    return {
-      qrCode,
-    };
-  } catch (error) {
-    console.error('ERR:QR: Unable to generate QR code', error);
-    return {
-      error: `Unable to generate QR code: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`,
-    };
-  }
-}
-
-export async function verifyTwoFactorToken(
-  secret: string,
-  token: string
-): Promise<boolean> {
-  const isTokenValid = speakeasy.totp.verify({
-    secret,
-    encoding: 'base32',
-    token,
-  });
-  return isTokenValid;
 }
 
 export async function setSessionId<T>(
