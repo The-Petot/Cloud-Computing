@@ -11,7 +11,7 @@ import {
   ServiceMethodReturnType,
   User,
 } from '../types/global.type';
-import { handleDBError } from '../utils';
+import { handleDBError } from '../lib';
 
 const userService = {
   async getUserById(

@@ -6,7 +6,7 @@ import {
 } from '../controllers/participation.controller';
 
 const participationRouter: Elysia = new Elysia()
-  .get('/participation', handleGetParticipations)
-  .get('/participation/:participationId', handleGetParticipationById);
+  .get('/participations', handleGetParticipations)
+  .get('/participations/:participationId', handleGetParticipationById);
 
 export default participationRouter;

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import db from '../database/db';
 import { participantsTable } from '../database/schema';
 import { Participation, ServiceMethodReturnType } from '../types/global.type';
-import { handleDBError } from '../utils';
+import { handleDBError } from '../lib';
 
 const participationsService = {
   async getParticipations(): Promise<ServiceMethodReturnType<Participation[]>> {

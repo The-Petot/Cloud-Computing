@@ -12,11 +12,7 @@ import {
   QuestionWithAnswers,
   ServiceMethodReturnType,
 } from '../types/global.type';
-import {
-  GenerateQuestionsResponse,
-  GenerateQuestionsResult,
-  handleDBError,
-} from '../utils';
+import { GenerateQuestionsResponse, handleDBError } from '../lib';
 
 const challengeService = {
   async getChallenges(): Promise<ServiceMethodReturnType<Challenge[]>> {
@@ -161,7 +157,7 @@ const challengeService = {
     } catch (error) {
       return handleDBError(error, 'Unable to create questions');
     }
-  },
+  }
 };
 
 export default challengeService;

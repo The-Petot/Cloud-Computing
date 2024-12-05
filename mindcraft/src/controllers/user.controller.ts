@@ -1,16 +1,10 @@
 import userService from '../services/user.service';
 import {
   Errors,
-  generateQuestions,
-  getSessionData,
   isANumber,
-  isGenerateQuestionsError,
-  isGetSessionDataSuccess,
   isServiceMethodSuccess,
-  isVerifyJwtTokenSuccess,
   setError,
   setFieldError,
-  verifyJwtToken,
 } from '../utils';
 import {
   HandleDeleteUser,
@@ -23,8 +17,20 @@ import {
   HandleCreateUserParticipation,
   HandleDeleteUserChallenge,
 } from '../types/user.type';
-import { Challenge } from '../types/global.type';
+import { Challenge, User } from '../types/global.type';
 import challengeService from '../services/challenge.service';
+import {
+  createMaterialSummary,
+  generateQuestions,
+  getSessionData,
+  isCreateMaterialSummarySuccess,
+  isGenerateQuestionsError,
+  isGetSessionDataSuccess,
+  isVerifyJwtTokenSuccess,
+  setSessionId,
+  verifyJwtToken,
+} from '../lib';
+import { isUploadFileSuccess, uploadFile } from '../storage/bucket';
 
 export const handleGetUsers: HandleGetUsers = async ({ set }) => {
   set.headers['content-type'] = 'application/json';
@@ -151,7 +157,7 @@ export const handleUpdateUser: HandleUpdateUser = async ({
   redis,
 }) => {
   set.headers['content-type'] = 'application/json';
-  set.headers['accept'] = 'application/json';
+  set.headers['accept'] = 'multipart/form-data';
 
   if (!body) {
     return setError(
@@ -171,7 +177,7 @@ export const handleUpdateUser: HandleUpdateUser = async ({
     );
   }
 
-  const { newUserData } = body;
+  const { newUserData, profileImage } = body;
   const { userId } = params;
 
   const validations = [
@@ -182,8 +188,13 @@ export const handleUpdateUser: HandleUpdateUser = async ({
     },
     {
       field: 'newUserData',
-      value: Object.keys(newUserData).length > 0,
+      value: newUserData,
       message: 'newUserData is missing.',
+    },
+    {
+      field: 'newUserData',
+      value: Object.keys(newUserData).length > 0,
+      message: 'newUserData is empty.',
     },
     {
       field: 'accessToken',
@@ -223,6 +234,14 @@ export const handleUpdateUser: HandleUpdateUser = async ({
   }
 
   const userIdNumber = parseInt(userId);
+  if (profileImage) {
+    const uploadResult = await uploadFile(profileImage, userIdNumber);
+    if (!isUploadFileSuccess(uploadResult)) {
+      return setError(set, 500, null, [uploadResult.error]);
+    }
+
+    newUserData.profileImgUrl = uploadResult.url
+  }
 
   const user = await userService.updateUser(userIdNumber, newUserData);
   if (!isServiceMethodSuccess(user)) {
@@ -230,6 +249,23 @@ export const handleUpdateUser: HandleUpdateUser = async ({
   }
 
   const { password, ...userData } = user.data;
+
+  try {
+    await redis.del(sessionId!);
+  } catch (error) {
+    return setError(set, 500, null, [
+      error instanceof Error ? error.message : 'Unknown error',
+    ]);
+  }
+
+  const setSessionDataResult = await setSessionId<Omit<User, 'password'>>(
+    redis,
+    sessionId!,
+    userData
+  );
+  if (!setSessionDataResult) {
+    return setError(set, 500, null, ['Unable to set session data.']);
+  }
 
   set.status = 200;
   return {
@@ -519,20 +555,18 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
     if (!value) errors.push({ field, messages: [message!] });
   });
 
-  if (material.length > 3000 || material.length < 100) {
-    const errorFiled = errors.find((error) => error.field === 'material');
-    const message =
-      material.length > 3000
-        ? 'material is too long. Max: 3000 chars'
-        : 'material is too short. Min: 100 chars';
-    if (errorFiled) {
-      errorFiled.messages.push(message);
-    } else {
-      errors.push({
-        field: 'material',
-        messages: [message],
-      });
-    }
+  if (material.length > 3000) {
+    errors.push({
+      field: 'material',
+      messages: ['material must not exceed 3000 characters.'],
+    });
+  }
+
+  if (material.length < 100) {
+    errors.push({
+      field: 'material',
+      messages: ['material must be at least 100 characters.'],
+    });
   }
 
   if (errors.length > 0) {
@@ -572,6 +606,13 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
   if (tags) {
     challenge.tags = tags.join(',');
   }
+
+  const materialSummaryResult = await createMaterialSummary(material);
+  if (!isCreateMaterialSummarySuccess(materialSummaryResult)) {
+    return setError(set, 500, null, [materialSummaryResult.error]);
+  }
+
+  challenge.summary = materialSummaryResult.summary;
 
   const challengeResult = await challengeService.createChallenge(challenge);
   if (!isServiceMethodSuccess(challengeResult)) {
