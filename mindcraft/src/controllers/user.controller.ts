@@ -1,6 +1,7 @@
 import userService from '../services/user.service';
 import {
   Errors,
+  hashPassword,
   isANumber,
   isServiceMethodSuccess,
   setError,
@@ -244,6 +245,10 @@ export const handleUpdateUser: HandleUpdateUser = async ({
     }
 
     newUserData.profileImgUrl = uploadResult.url;
+  }
+
+  if (newUserData.password) {
+    newUserData.password = await hashPassword(newUserData.password);
   }
 
   const user = await userService.updateUser(userIdNumber, newUserData);
