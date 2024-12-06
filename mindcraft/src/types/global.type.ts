@@ -29,6 +29,11 @@ export interface JSONSuccessResponse<T> {
   success: boolean;
   data?: T;
   message: string;
+  pagination?: {
+    limit: number;
+    offset: number;
+    total: number;
+  };
   links: {
     self: string;
     [key: string]: string;

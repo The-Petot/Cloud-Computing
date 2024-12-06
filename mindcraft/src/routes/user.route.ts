@@ -8,8 +8,8 @@ import {
   handleGetUsers,
   handleUpdateUser,
   handleCreateUserParticipation,
-  handleDeleteUserChallenge
-  
+  handleDeleteUserChallenge,
+  handleUpdateUserChallenge
 } from '../controllers/user.controller';
 
 const userRouter: Elysia = new Elysia()
@@ -18,6 +18,7 @@ const userRouter: Elysia = new Elysia()
   .get('/users/:userId/challenges', handleGetUserChallenges)
   .get('/users/:userId/participations', handleGetUserParticipations)
   .put('/users/:userId', handleUpdateUser)
+  .put('/users/:userId/challenges/:challengeId', handleUpdateUserChallenge)
   .post('/users/:userId/challenges', handleCreateUserChallenge)
   .post('/users/:userId/participations', handleCreateUserParticipation)
   .delete('/users/:userId', handleDeleteUser)

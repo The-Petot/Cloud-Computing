@@ -1,23 +1,6 @@
 import { InferHandler } from 'elysia';
 import app from '..';
-import { Challenge, Participation, User } from './global.type';
-
-interface JSONErrorResponse {
-  errors: {
-    messages: string[];
-    field?: string;
-    header?: string;
-  }[];
-}
-
-interface JSONSuccessResponse<T> {
-  data?: T;
-  message: string;
-  links: {
-    self: string;
-    [key: string]: string;
-  };
-}
+import { Challenge, JSONErrorResponse, JSONSuccessResponse, Participation, User } from './global.type';
 
 export type HandleGetUserById = InferHandler<
   typeof app,
@@ -37,6 +20,7 @@ export type HandleGetUsers = InferHandler<
   typeof app,
   '/users',
   {
+    query: { limit?: string; offset?: string };
     response: {
       200: JSONSuccessResponse<
         {
@@ -85,7 +69,7 @@ export type HandleUpdateUser = InferHandler<
   typeof app,
   '/users/:userId',
   {
-    body: { newUserData: Partial<User>, profileImage?: File };
+    body: { newUserData: Partial<User>; profileImage?: File };
     params: { userId: string };
     response: {
       200: JSONSuccessResponse<Partial<Omit<User, 'password'>>>;
@@ -161,7 +145,7 @@ export type HandleCreateUserParticipation = InferHandler<
       500: JSONErrorResponse;
     };
   }
->
+>;
 
 export type HandleDeleteUserChallenge = InferHandler<
   typeof app,
@@ -175,4 +159,29 @@ export type HandleDeleteUserChallenge = InferHandler<
       500: JSONErrorResponse;
     };
   }
->
+>;
+
+export type HandleUpdateUserChallenge = InferHandler<
+  typeof app,
+  '/users/:userId/challenges/:challengeId',
+  {
+    params: { userId: string; challengeId: string };
+    body: Omit<
+      Challenge,
+      | 'id'
+      | 'updatedAt'
+      | 'createdAt'
+      | 'summary'
+      | 'authorId'
+      | 'totalQuestions'
+      | 'createdAt'
+      | 'updatedAt'
+    >;
+    response: {
+      200: JSONSuccessResponse<Challenge>;
+      400: JSONErrorResponse;
+      401: JSONErrorResponse;
+      500: JSONErrorResponse;
+    };
+  }
+>;

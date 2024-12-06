@@ -16,6 +16,7 @@ import {
   HandleCreateUserChallenge,
   HandleCreateUserParticipation,
   HandleDeleteUserChallenge,
+  HandleUpdateUserChallenge,
 } from '../types/user.type';
 import { Challenge, User } from '../types/global.type';
 import challengeService from '../services/challenge.service';
@@ -49,6 +50,7 @@ export const handleGetUsers: HandleGetUsers = async ({ set }) => {
       self: '/users',
       userDetails: '/users/:userId',
       updateUser: '/users/:userId',
+      updateUserChallenge: `/users/:userId/challenges/:challengeId`,
       deleteUser: '/users/:userId',
       userChallenges: '/users/:userId/challenges',
       userParticipations: '/users/:userId/participations',
@@ -138,6 +140,7 @@ export const handleGetUserById: HandleGetUserById = async ({
       self: `/users/${userId}`,
       users: '/users',
       updateUser: `/users/${userId}`,
+      updateUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
       deleteUser: `/users/${userId}`,
       userChallenges: `/users/${userId}/challenges`,
       userParticipations: `/users/${userId}/participations`,
@@ -274,6 +277,7 @@ export const handleUpdateUser: HandleUpdateUser = async ({
     message: 'User data updated successfully.',
     links: {
       self: `/users/${userIdNumber}`,
+      updateUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
       users: '/users',
       userDetails: `/users/${userIdNumber}`,
       deleteUser: `/users/${userIdNumber}`,
@@ -363,6 +367,7 @@ export const handleDeleteUser: HandleDeleteUser = async ({
       users: '/users',
       userDetails: `/users/${userIdNumber}`,
       updateUser: `/users/${userIdNumber}`,
+      updateUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
       userChallenges: `/users/${userIdNumber}/challenges`,
       userParticipations: `/users/${userIdNumber}/participations`,
       createUserChallenge: `/users/${userIdNumber}/challenges`,
@@ -417,6 +422,7 @@ export const handleGetUserChallenges: HandleGetUserChallenges = async ({
       users: '/users',
       userDetails: `/users/${userId}`,
       updateUser: `/users/${userId}`,
+      updateUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
       deleteUser: `/users/${userId}`,
       userParticipations: `/users/${userId}/participations`,
       createUserChallenge: `/users/${userId}/challenges`,
@@ -473,6 +479,7 @@ export const handleGetUserParticipations: HandleGetUserParticipations = async ({
       users: '/users',
       userDetails: `/users/${userId}`,
       updateUser: `/users/${userId}`,
+      updateUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
       deleteUser: `/users/${userId}`,
       userChallenges: `/users/${userId}/challenges`,
       createUserChallenge: `/users/${userId}/challenges`,
@@ -524,11 +531,6 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
       field: 'title',
       value: title,
       message: 'title is missing.',
-    },
-    {
-      field: 'description',
-      value: description,
-      message: 'description is missing.',
     },
     {
       field: 'material',
@@ -595,7 +597,6 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
 
   const challenge: Challenge = {
     title,
-    description,
     timeSeconds,
     authorId: userIdNumber,
     createdAt: new Date(),
@@ -605,6 +606,10 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
 
   if (tags) {
     challenge.tags = tags.join(',');
+  }
+
+  if (description) {
+    challenge.description = description;
   }
 
   const materialSummaryResult = await createMaterialSummary(material);
@@ -648,6 +653,7 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
       users: '/users',
       userDetails: `/users/${userIdNumber}`,
       updateUser: `/users/${userIdNumber}`,
+      updateUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
       deleteUser: `/users/${userIdNumber}`,
       userChallenges: `/users/${userIdNumber}/challenges`,
       userParticipations: `/users/${userIdNumber}/participations`,
@@ -770,6 +776,7 @@ export const handleCreateUserParticipation: HandleCreateUserParticipation =
         users: '/users',
         userDetails: `/users/${userId}`,
         updateUser: `/users/${userId}`,
+        updateUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
         deleteUser: `/users/${userId}`,
         userChallenges: `/users/${userId}/challenges`,
         userParticipations: `/users/${userId}/participations`,
@@ -875,11 +882,140 @@ export const handleDeleteUserChallenge: HandleDeleteUserChallenge = async ({
       users: '/users',
       userDetails: `/users/${userIdNumber}`,
       updateUser: `/users/${userIdNumber}`,
+      updateUserChallenge: `/users/${userIdNumber}/challenges/${challengeIdNumber}`,
       deleteUser: `/users/${userIdNumber}`,
       userChallenges: `/users/${userIdNumber}/challenges`,
       userParticipations: `/users/${userIdNumber}/participations`,
       createUserChallenge: `/users/${userIdNumber}/challenges`,
       createUserParticipation: `/users/${userIdNumber}/participations`,
+    },
+  };
+};
+
+export const handleUpdateUserChallenge: HandleUpdateUserChallenge = async ({
+  set,
+  params,
+  body,
+  accessToken,
+  sessionId,
+  redis,
+}) => {
+  set.headers['content-type'] = 'application/json';
+  set.headers['accept'] = 'application/json';
+
+  if (!params) {
+    return setError(
+      set,
+      400,
+      [{ field: 'params', messages: ['params is missing.'] }],
+      null
+    );
+  }
+
+  if (!body) {
+    return setError(
+      set,
+      400,
+      [{ field: 'body', messages: ['body is missing.'] }],
+      null
+    );
+  }
+
+  if (Object.keys(body).length === 0) {
+    return setError(
+      set,
+      400,
+      [{ field: 'body', messages: ['body is empty.'] }],
+      null
+    );
+  }
+
+  const { userId, challengeId } = params;
+  const errors: Errors = [];
+  const validations = [
+    {
+      field: 'userId',
+      value: userId,
+      message: 'userId is missing.',
+    },
+    {
+      field: 'challengeId',
+      value: challengeId,
+      message: 'challengeId is missing.',
+    },
+    {
+      field: 'accessToken',
+      value: accessToken,
+      message: 'accessToken is missing.',
+    },
+    {
+      field: 'sessionId',
+      value: sessionId,
+      message: 'sessionId is missing.',
+    },
+  ];
+
+  validations.forEach(({ field, value, message }) => {
+    if (!value) errors.push({ field, messages: [message!] });
+  });
+
+  if (errors.length > 0) {
+    return setError(set, 400, errors, null);
+  }
+
+  if (!isANumber(userId)) {
+    return setFieldError(set, 400, 'userId', ['userId must be a number.']);
+  }
+
+  if (!isANumber(challengeId)) {
+    return setFieldError(set, 400, 'challengeId', [
+      'challengeId must be a number.',
+    ]);
+  }
+
+  const userIdNumber = parseInt(userId);
+  const challengeIdNumber = parseInt(challengeId);
+
+  const decodedAccessToken = await verifyJwtToken(accessToken!);
+  if (!isVerifyJwtTokenSuccess(decodedAccessToken)) {
+    return setFieldError(set, 401, 'accessToken', [decodedAccessToken.error]);
+  }
+
+  const sessionData = await getSessionData(redis, sessionId!);
+  if (!isGetSessionDataSuccess(sessionData)) {
+    return setError(set, sessionData.statusCode, null, [sessionData.error]);
+  }
+
+  const updatedChallenge = await challengeService.updateChallenge(
+    userIdNumber,
+    challengeIdNumber,
+    body
+  );
+  if (!isServiceMethodSuccess(updatedChallenge)) {
+    return setError(
+      set,
+      updatedChallenge.statusCode,
+      updatedChallenge.errors,
+      null
+    );
+  }
+
+  set.status = 200;
+  return {
+    success: true,
+    data: updatedChallenge.data,
+    message: 'Challenge updated successfully.',
+    links: {
+      self: `/users/${userIdNumber}/challenges/${challengeIdNumber}`,
+      users: '/users',
+      userDetails: `/users/${userIdNumber}`,
+      updateUser: `/users/${userIdNumber}`,
+      deleteUser: `/users/${userIdNumber}`,
+      userChallenges: `/users/${userIdNumber}/challenges`,
+      userParticipations: `/users/${userIdNumber}/participations`,
+      createUserChallenge: `/users/${userIdNumber}/challenges`,
+      createUserParticipation: `/users/${userIdNumber}/participations`,
+      deleteUserChallenge: `/users/${userIdNumber}/challenges/:challengeId`,
     },
   };
 };

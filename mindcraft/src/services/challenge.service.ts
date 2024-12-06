@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import db from '../database/db';
 import {
   answersTable,
@@ -156,6 +156,31 @@ const challengeService = {
       };
     } catch (error) {
       return handleDBError(error, 'Unable to create questions');
+    }
+  },
+  async updateChallenge(userId: number, challengeId: number, challenge: Omit<
+    Challenge,
+    | 'id'
+    | 'updatedAt'
+    | 'createdAt'
+    | 'summary'
+    | 'authorId'
+    | 'totalQuestions'
+    | 'createdAt'
+    | 'updatedAt'
+  >): Promise<ServiceMethodReturnType<Challenge>> {
+    try {
+      const [updatedChallenge] = await db
+        .update(challengesTable)
+        .set(challenge)
+        .where(and(eq(challengesTable.id, challengeId), eq(challengesTable.authorId, userId)))
+        .returning();
+
+      return {
+        data: updatedChallenge,
+      };
+    } catch (error) {
+      return handleDBError(error, 'Unable to update challenge');
     }
   }
 };
