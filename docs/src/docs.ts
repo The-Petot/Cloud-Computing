@@ -1138,6 +1138,13 @@ const app = new Elysia()
                       example: 'GOOGLE_ID_TOKEN',
                       description: 'Google IdToken.',
                     },
+                    twoFAToken: {
+                      type: 'string',
+                      example: '123456',
+                      description:
+                        "The user's two-factor authentication token from the authenticator app.",
+                      nullable: true,
+                    }
                   },
                   required: ['token'],
                 },
