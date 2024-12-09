@@ -12,7 +12,7 @@ import {
   QuestionWithAnswers,
   ServiceMethodReturnType,
 } from '../types/global.type';
-import { GenerateQuestionsResponse, handleDBError } from '../lib';
+import { Questions, handleDBError } from '../lib';
 
 const challengeService = {
   async getChallenges(
@@ -125,7 +125,7 @@ const challengeService = {
   },
   async createChallengeQuestions(
     challengeId: number,
-    questions: GenerateQuestionsResponse
+    questions: Questions
   ): Promise<ServiceMethodReturnType<QuestionWithAnswers[]>> {
     try {
       const result = await db.transaction(async (tx) => {

@@ -7,6 +7,7 @@ import {
   questionsTable,
   usersTable,
 } from '../database/schema';
+import { Questions } from '../lib';
 
 export type Jwt = {
   readonly sign: (
@@ -54,6 +55,21 @@ export type ServiceMethodReturnType<T> =
       }[];
       statusCode: number;
     };
+
+export type SummaryResult = {
+  id: string;
+  taskType: 'summary';
+  summary: string;
+  processing_time_seconds: number;
+};
+
+export type GenerateResult = {
+  id: string;
+  taskType: 'generate';
+  questions: Questions;
+};
+
+export type PubSubResult = GenerateResult | SummaryResult;
 
 export type Redis = typeof redis;
 export type User = typeof usersTable.$inferInsert;

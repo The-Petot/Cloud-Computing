@@ -8,9 +8,18 @@ import { config } from 'dotenv';
 import userRouter from './routes/user.route';
 import challengeRouter from './routes/challenge.route';
 import participationRouter from './routes/participation.route';
+import { listenForMessages } from './pub-sub/pubsub';
+import { PubSubResult } from './types/global.type';
+import { PubSub } from '@google-cloud/pubsub';
 config();
 
+export const pubSubClient = new PubSub({
+  keyFilename: getEnv('PATH_TO_SERVICEACCOUNTKEY'),
+});
+export const tasks = new Map<string, PubSubResult>();
 const redis = await import('./database/redis').then((m) => m.default);
+
+listenForMessages(tasks).catch(console.error);
 
 const app = new Elysia({
   serve: {

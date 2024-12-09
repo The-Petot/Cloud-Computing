@@ -19,7 +19,7 @@ import {
   HandleDeleteUserChallenge,
   HandleUpdateUserChallenge,
 } from '../types/user.type';
-import { Challenge, User } from '../types/global.type';
+import { Challenge, GenerateResult, SummaryResult, User } from '../types/global.type';
 import challengeService from '../services/challenge.service';
 import {
   createMaterialSummary,
@@ -33,6 +33,8 @@ import {
   verifyJwtToken,
 } from '../lib';
 import { isUploadFileSuccess, uploadFile } from '../storage/bucket';
+import { isPublishPubSubTaskError, isPubSubTaskReachedTimeout, publishGenerativeTask, publishSummaryTask, waitForResults } from '../pub-sub/pubsub';
+import { tasks } from '..';
 
 export const handleGetUsers: HandleGetUsers = async ({ set, query }) => {
   set.headers['content-type'] = 'application/json';
@@ -638,8 +640,29 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
   }
 
   const userIdNumber = parseInt(userId);
-  const generateResult = await generateQuestions(material);
-  if (isGenerateQuestionsError(generateResult)) {
+  const [publishGenerativeTaskResult, publishSummaryTaskResult] = await Promise.all([
+    publishGenerativeTask(material),
+    publishSummaryTask(material),
+  ]);
+
+  if (isPublishPubSubTaskError(publishGenerativeTaskResult)) {
+    return setError(set, 500, null, [publishGenerativeTaskResult.error]);
+  }
+
+  if (isPublishPubSubTaskError(publishSummaryTaskResult)) {
+    return setError(set, 500, null, [publishSummaryTaskResult.error]);
+  }
+
+  const [summaryResult, generateResult] = await Promise.all([
+    waitForResults<SummaryResult>(tasks, publishSummaryTaskResult),
+    waitForResults<GenerateResult>(tasks, publishGenerativeTaskResult),
+  ]);
+
+  if (isPubSubTaskReachedTimeout(summaryResult)) {
+    return setError(set, 500, null, [summaryResult.error]);
+  }
+
+  if (isPubSubTaskReachedTimeout(generateResult)) {
     return setError(set, 500, null, [generateResult.error]);
   }
 
@@ -647,9 +670,10 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
     title,
     timeSeconds,
     authorId: userIdNumber,
+    summary: summaryResult.summary,
+    totalQuestions: generateResult.questions.length,
     createdAt: new Date(),
     updatedAt: new Date(),
-    totalQuestions: generateResult.length,
   };
 
   if (tags) {
@@ -659,13 +683,6 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
   if (description) {
     challenge.description = description;
   }
-
-  const materialSummaryResult = await createMaterialSummary(material);
-  if (!isCreateMaterialSummarySuccess(materialSummaryResult)) {
-    return setError(set, 500, null, [materialSummaryResult.error]);
-  }
-
-  challenge.summary = materialSummaryResult.summary;
 
   const challengeResult = await challengeService.createChallenge(challenge);
   if (!isServiceMethodSuccess(challengeResult)) {
@@ -680,7 +697,7 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
   const challengeQuestionsResult =
     await challengeService.createChallengeQuestions(
       challengeResult.data.id!,
-      generateResult
+      generateResult.questions
     );
   if (!isServiceMethodSuccess(challengeQuestionsResult)) {
     return setError(

@@ -13,6 +13,7 @@
     "@bogeychan/elysia-logger": "^0.1.4",
     "@elysiajs/cors": "^1.1.1",
     "@elysiajs/swagger": "^1.1.6",
+    "@google-cloud/pubsub": "^4.9.0",
     "@google-cloud/storage": "^7.14.0",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.6",

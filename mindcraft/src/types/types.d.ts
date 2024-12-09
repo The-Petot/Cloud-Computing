@@ -8,7 +8,7 @@ export interface ExtendedEnv extends Bun.env {
   DB_NAME: string;
   DB_HOST: string;
   DB_PORT: string;
-  JWT_SECRET: string
+  JWT_SECRET: string;
   REDIS_URL_DEV: string;
   REDIS_URL_PROD: string;
   QUESTION_MODEL_URL: string;
@@ -16,4 +16,7 @@ export interface ExtendedEnv extends Bun.env {
   PATH_TO_SERVICEACCOUNTKEY: string;
   BUCKET_NAME: string;
   TEST: string;
+  PUBSUB_TOPIC_ML_GENERATE: string;
+  PUBSUB_TOPIC_ML_SUMMARY: string;
+  PUBSUB_TOPIC_ML_RESULTS: string;
 }

@@ -3,7 +3,7 @@ import * as jose from 'jose';
 import { Redis, User } from './types/global.type';
 import { v4 } from 'uuid';
 
-export type GenerateQuestionsResponse = {
+export type Questions = {
   question: string;
   options: {
     A: string;
@@ -16,7 +16,7 @@ export type GenerateQuestionsResponse = {
 }[];
 
 export type GenerateQuestionsResult =
-  | GenerateQuestionsResponse
+  | Questions
   | { error: string };
 
 export function isGenerateQuestionsError(
@@ -32,7 +32,7 @@ export async function generateQuestions(
     const result = await fetch(
       `${getEnv('QUESTION_MODEL_URL')}/generate?RequestContext=${material}`
     );
-    const data: GenerateQuestionsResponse = await result.json();
+    const data: Questions = await result.json();
     return data;
   } catch (error) {
     return {
@@ -43,7 +43,7 @@ export async function generateQuestions(
   }
 }
 
-type CreateMaterialSummaryResult =
+export type CreateMaterialSummaryResult =
   | { error: string }
   | { summary: string; processing_time_seconds: number };
 export function isCreateMaterialSummarySuccess(
