@@ -5,7 +5,7 @@ import { Participation, ServiceMethodReturnType } from '../types/global.type';
 import { handleDBError } from '../lib';
 
 const participationsService = {
-  async getParticipations(): Promise<ServiceMethodReturnType<Participation[]>> {
+  async getParticipations(limit: number, offset: number): Promise<ServiceMethodReturnType<Participation[]>> {
     try {
       const participations = await db.select().from(participantsTable);
       return {

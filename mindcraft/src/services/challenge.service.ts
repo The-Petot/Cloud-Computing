@@ -15,9 +15,16 @@ import {
 import { GenerateQuestionsResponse, handleDBError } from '../lib';
 
 const challengeService = {
-  async getChallenges(): Promise<ServiceMethodReturnType<Challenge[]>> {
+  async getChallenges(
+    limit: number,
+    offset: number
+  ): Promise<ServiceMethodReturnType<Challenge[]>> {
     try {
-      const challenges = await db.select().from(challengesTable);
+      const challenges = await db
+        .select()
+        .from(challengesTable)
+        .limit(limit)
+        .offset(offset);
 
       return {
         data: challenges,
@@ -54,13 +61,18 @@ const challengeService = {
     }
   },
   async getChallengeParticipants(
-    challengeId: number
+    challengeId: number,
+    limit: number,
+    offset: number
   ): Promise<ServiceMethodReturnType<Participation[]>> {
     try {
       const participants = await db
         .select()
         .from(participantsTable)
-        .where(eq(participantsTable.challengeId, challengeId));
+        .where(eq(participantsTable.challengeId, challengeId))
+        .limit(limit)
+        .offset(offset);
+
       return {
         data: participants,
       };
@@ -69,13 +81,17 @@ const challengeService = {
     }
   },
   async getChallengeQuestions(
-    challengeId: number
+    challengeId: number,
+    limit: number,
+    offset: number
   ): Promise<ServiceMethodReturnType<QuestionWithAnswers[]>> {
     try {
       const questions: QuestionWithAnswers[] = await db
         .select()
         .from(questionsTable)
-        .where(eq(questionsTable.challengeId, challengeId));
+        .where(eq(questionsTable.challengeId, challengeId))
+        .limit(limit)
+        .offset(offset);
 
       for (let i = 0; i < questions.length; i++) {
         questions[i].answers = await db
@@ -158,22 +174,31 @@ const challengeService = {
       return handleDBError(error, 'Unable to create questions');
     }
   },
-  async updateChallenge(userId: number, challengeId: number, challenge: Omit<
-    Challenge,
-    | 'id'
-    | 'updatedAt'
-    | 'createdAt'
-    | 'summary'
-    | 'authorId'
-    | 'totalQuestions'
-    | 'createdAt'
-    | 'updatedAt'
-  >): Promise<ServiceMethodReturnType<Challenge>> {
+  async updateChallenge(
+    userId: number,
+    challengeId: number,
+    challenge: Omit<
+      Challenge,
+      | 'id'
+      | 'updatedAt'
+      | 'createdAt'
+      | 'summary'
+      | 'authorId'
+      | 'totalQuestions'
+      | 'createdAt'
+      | 'updatedAt'
+    >
+  ): Promise<ServiceMethodReturnType<Challenge>> {
     try {
       const [updatedChallenge] = await db
         .update(challengesTable)
         .set(challenge)
-        .where(and(eq(challengesTable.id, challengeId), eq(challengesTable.authorId, userId)))
+        .where(
+          and(
+            eq(challengesTable.id, challengeId),
+            eq(challengesTable.authorId, userId)
+          )
+        )
         .returning();
 
       return {
@@ -182,7 +207,7 @@ const challengeService = {
     } catch (error) {
       return handleDBError(error, 'Unable to update challenge');
     }
-  }
+  },
 };
 
 export default challengeService;

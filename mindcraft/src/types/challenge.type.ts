@@ -27,6 +27,7 @@ export type HandleGetChallenges = InferHandler<
   typeof app,
   '/challenges',
   {
+    query: { limit?: string; offset?: string };
     response: {
       200: JSONSuccessResponse<Challenge[]>;
       400: JSONErrorResponse;
@@ -55,6 +56,7 @@ export type HandleGetChallengeParticipants = InferHandler<
   typeof app,
   '/challenges/:challengeId/participants',
   {
+    query: { limit?: string; offset?: string };
     params: { challengeId: string };
     response: {
       200: JSONSuccessResponse<Participation[]>;
@@ -69,6 +71,7 @@ export type HandleGetChallengeQuestions = InferHandler<
   typeof app,
   '/challenges/:challengeId/questions',
   {
+    query: { limit?: string; offset?: string };
     params: { challengeId: string };
     response: {
       200: JSONSuccessResponse<QuestionWithAnswers[]>;

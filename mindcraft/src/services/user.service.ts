@@ -42,26 +42,39 @@ const userService = {
       return handleDBError(error, 'Unable to get user');
     }
   },
-  async getUsers(): Promise<
+  async getUsers(
+    limit: number,
+    offset: number
+  ): Promise<
     ServiceMethodReturnType<
       {
+        id: number;
         firstName: string;
         lastName: string;
         email: string;
         profileImgUrl: string;
+        totalScore: number;
+        currentRank: number;
       }[]
     >
   > {
     try {
-      const users = await db.select().from(usersTable);
+      const users = await db
+        .select({
+          id: usersTable.id,
+          firstName: usersTable.firstName,
+          lastName: usersTable.lastName,
+          email: usersTable.email,
+          profileImgUrl: usersTable.profileImgUrl!,
+          totalScore: usersTable.totalScore,
+          currentRank: usersTable.currentRank,
+        })
+        .from(usersTable)
+        .limit(limit)
+        .offset(offset);
 
       return {
-        data: users.map((user) => ({
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          profileImgUrl: user.profileImgUrl!,
-        })),
+        data: users,
       };
     } catch (error) {
       return handleDBError(error, 'Unable to get users');
@@ -115,13 +128,17 @@ const userService = {
     }
   },
   async getUserChallenges(
-    userId: number
+    userId: number,
+    limit: number,
+    offset: number
   ): Promise<ServiceMethodReturnType<Challenge[]>> {
     try {
       const challenges = await db
         .select()
         .from(challengesTable)
-        .where(eq(challengesTable.authorId, userId));
+        .where(eq(challengesTable.authorId, userId))
+        .limit(limit)
+        .offset(offset);
 
       return {
         data: challenges,
@@ -131,13 +148,17 @@ const userService = {
     }
   },
   async getUserParticipations(
-    userId: number
+    userId: number,
+    limit: number,
+    offset: number
   ): Promise<ServiceMethodReturnType<Participation[]>> {
     try {
       const participations = await db
         .select()
         .from(participantsTable)
-        .where(eq(participantsTable.participantId, userId));
+        .where(eq(participantsTable.participantId, userId))
+        .limit(limit)
+        .offset(offset);
 
       return {
         data: participations,

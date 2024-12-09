@@ -11,6 +11,7 @@ export type HandleGetParticipations = InferHandler<
   typeof app,
   '/participations',
   {
+    query: { limit?: string; offset?: string };
     response: {
       200: JSONSuccessResponse<Participation[]>;
       400: JSONErrorResponse;

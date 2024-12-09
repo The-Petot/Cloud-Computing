@@ -10,10 +10,27 @@ import {
 
 export const handleGetParticipations: HandleGetUserParticipations = async ({
   set,
+  query,
 }) => {
   set.headers['content-type'] = 'application/json';
 
-  const participationsResult = await participationsService.getParticipations();
+  let limit = 100;
+  let offset = 0;
+
+  if (query) {
+    if (query.limit && isANumber(query.limit)) {
+      limit = parseInt(query.limit, 10);
+    }
+
+    if (query.offset && isANumber(query.offset)) {
+      offset = parseInt(query.offset, 10);
+    }
+  }
+
+  const participationsResult = await participationsService.getParticipations(
+    limit,
+    offset
+  );
   if (!isServiceMethodSuccess(participationsResult)) {
     return setError(
       set,

@@ -24,7 +24,7 @@ export const usersTable = pgTable('users', {
   lastName: varchar('last_name', { length: 255 }).notNull(),
   totalScore: integer().notNull().default(0),
   currentRank: integer('current_rank').notNull().default(-1),
-  profileImgUrl: text('profile_url'),
+  profileImgUrl: text('profile_url').notNull(),
   
   twoFactorSecret: text('two_factor_secret'),
   twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),

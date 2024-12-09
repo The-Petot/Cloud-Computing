@@ -6,7 +6,8 @@
     "build": "swc src -d dist --out-file-extension .js --copy-files",
     "dev": "NODE_ENV=development bun run --watch src/index.ts",
     "db:migrate": "bunx drizzle-kit generate && bunx drizzle-kit migrate",
-    "db:clear": "bun src/database/clear.ts"
+    "db:clear": "bun src/database/clear.ts",
+    "db:seed": "bun src/database/seed.ts"
   },
   "dependencies": {
     "@bogeychan/elysia-logger": "^0.1.4",

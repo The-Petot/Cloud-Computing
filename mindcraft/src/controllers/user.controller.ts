@@ -34,10 +34,23 @@ import {
 } from '../lib';
 import { isUploadFileSuccess, uploadFile } from '../storage/bucket';
 
-export const handleGetUsers: HandleGetUsers = async ({ set }) => {
+export const handleGetUsers: HandleGetUsers = async ({ set, query }) => {
   set.headers['content-type'] = 'application/json';
 
-  const users = await userService.getUsers();
+  let limit = 100;
+  let offset = 0;
+
+  if (query) {
+    if (query.limit && isANumber(query.limit)) {
+      limit = parseInt(query.limit);
+    }
+
+    if (query.offset && isANumber(query.offset)) {
+      offset = parseInt(query.offset);
+    }
+  }
+
+  const users = await userService.getUsers(limit, offset);
   if (!isServiceMethodSuccess(users)) {
     return setError(set, users.statusCode, users.errors, null);
   }
@@ -385,6 +398,7 @@ export const handleDeleteUser: HandleDeleteUser = async ({
 export const handleGetUserChallenges: HandleGetUserChallenges = async ({
   set,
   params,
+  query,
 }) => {
   set.headers['content-type'] = 'application/json';
 
@@ -406,8 +420,21 @@ export const handleGetUserChallenges: HandleGetUserChallenges = async ({
     return setFieldError(set, 400, 'userId', ['userId must be a number.']);
   }
 
+  let limit = 100;
+  let offset = 0;
+
+  if (query) {
+    if (query.limit && isANumber(query.limit)) {
+      limit = parseInt(query.limit);
+    }
+
+    if (query.offset && isANumber(query.offset)) {
+      offset = parseInt(query.offset);
+    }
+  }
+
   const userIdNumber = parseInt(userId);
-  const userChallenges = await userService.getUserChallenges(userIdNumber);
+  const userChallenges = await userService.getUserChallenges(userIdNumber, limit, offset);
   if (!isServiceMethodSuccess(userChallenges)) {
     return setError(
       set,
@@ -440,6 +467,7 @@ export const handleGetUserChallenges: HandleGetUserChallenges = async ({
 export const handleGetUserParticipations: HandleGetUserParticipations = async ({
   set,
   params,
+  query
 }) => {
   set.headers['content-type'] = 'application/json';
 
@@ -461,9 +489,24 @@ export const handleGetUserParticipations: HandleGetUserParticipations = async ({
     return setFieldError(set, 400, 'userId', ['userId must be a number.']);
   }
 
+  let limit = 100;
+  let offset = 0;
+
+  if (query) {
+    if (query.limit && isANumber(query.limit)) {
+      limit = parseInt(query.limit);
+    }
+
+    if (query.offset && isANumber(query.offset)) {
+      offset = parseInt(query.offset);
+    }
+  }
+
   const userIdNumber = parseInt(userId);
   const userParticipations = await userService.getUserParticipations(
-    userIdNumber
+    userIdNumber,
+    limit,
+    offset
   );
   if (!isServiceMethodSuccess(userParticipations)) {
     return setError(

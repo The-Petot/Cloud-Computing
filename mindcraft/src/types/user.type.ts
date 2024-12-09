@@ -24,10 +24,13 @@ export type HandleGetUsers = InferHandler<
     response: {
       200: JSONSuccessResponse<
         {
+          id: number;
           firstName: string;
           lastName: string;
           email: string;
           profileImgUrl: string;
+          totalScore: number;
+          currentRank: number;
         }[]
       >;
       400: JSONErrorResponse;
@@ -41,6 +44,7 @@ export type HandleGetUserChallenges = InferHandler<
   typeof app,
   '/users/:userId/challenges',
   {
+    query: { limit?: string; offset?: string };
     params: { userId: string };
     response: {
       200: JSONSuccessResponse<Challenge[]>;
@@ -55,6 +59,7 @@ export type HandleGetUserParticipations = InferHandler<
   typeof app,
   '/users/:userId/participations',
   {
+    query: { limit?: string; offset?: string };
     params: { userId: string };
     response: {
       200: JSONSuccessResponse<Participation[]>;

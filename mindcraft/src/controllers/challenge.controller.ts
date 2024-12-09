@@ -7,10 +7,23 @@ import {
 } from '../types/challenge.type';
 import { isANumber, isServiceMethodSuccess, setError } from '../utils';
 
-export const handleGetChallenges: HandleGetChallenges = async ({ set }) => {
+export const handleGetChallenges: HandleGetChallenges = async ({ set, query }) => {
   set.headers['content-type'] = 'application/json';
 
-  const challenges = await challengeService.getChallenges();
+  let limit = 100;
+  let offset = 0;
+
+  if (query) {
+    if (query.limit && isANumber(query.limit)) {
+      limit = parseInt(query.limit);
+    }
+
+    if (query.offset && isANumber(query.offset)) {
+      offset = parseInt(query.offset);
+    }
+  }
+
+  const challenges = await challengeService.getChallenges(limit, offset);
   if (!isServiceMethodSuccess(challenges)) {
     return setError(set, challenges.statusCode, challenges.errors, null);
   }
@@ -84,7 +97,7 @@ export const handleGetChallengeById: HandleGetChallengeById = async ({
 };
 
 export const handleGetChallengeParticipants: HandleGetChallengeParticipants =
-  async ({ set, params }) => {
+  async ({ set, params, query }) => {
     set.headers['content-type'] = 'application/json';
 
     if (!params) {
@@ -115,9 +128,22 @@ export const handleGetChallengeParticipants: HandleGetChallengeParticipants =
       );
     }
 
+    let limit = 100;
+    let offset = 0;
+
+    if (query) {
+      if (query.limit && isANumber(query.limit)) {
+        limit = parseInt(query.limit);
+      }
+
+      if (query.offset && isANumber(query.offset)) {
+        offset = parseInt(query.offset);
+      }
+    }
+
     const challengeIdNumber = parseInt(challengeId);
     const challengeParticipants =
-      await challengeService.getChallengeParticipants(challengeIdNumber);
+      await challengeService.getChallengeParticipants(challengeIdNumber, limit, offset);
     if (!isServiceMethodSuccess(challengeParticipants)) {
       return setError(
         set,
@@ -144,6 +170,7 @@ export const handleGetChallengeParticipants: HandleGetChallengeParticipants =
 export const handleGetChallengeQuestions: HandleGetChallengeQuestions = async ({
   set,
   params,
+  query
 }) => {
   set.headers['content-type'] = 'application/json';
 
@@ -175,9 +202,24 @@ export const handleGetChallengeQuestions: HandleGetChallengeQuestions = async ({
     );
   }
 
+  let limit = 100;
+  let offset = 0;
+
+  if (query) {
+    if (query.limit && isANumber(query.limit)) {
+      limit = parseInt(query.limit);
+    }
+
+    if (query.offset && isANumber(query.offset)) {
+      offset = parseInt(query.offset);
+    }
+  }
+
   const challengeIdNumber = parseInt(challengeId);
   const challengeQuestions = await challengeService.getChallengeQuestions(
-    challengeIdNumber
+    challengeIdNumber,
+    limit,
+    offset
   );
   if (!isServiceMethodSuccess(challengeQuestions)) {
     return setError(

@@ -1368,6 +1368,26 @@ const app = new Elysia()
           summary: 'Get all users',
           description:
             'Retrieve a list of all users including their first name, last name, email, and profile image URL.',
+          parameters: [
+            {
+              in: 'query',
+              name: 'limit',
+              schema: {
+                type: 'number',
+                example: 10,
+              },
+              required: false,
+            },
+            {
+              in: 'query',
+              name: 'offset',
+              schema: {
+                type: 'number',
+                example: 0,
+              },
+              required: false,
+            },
+          ],
           responses: {
             200: {
               description: 'A list of users',
@@ -1800,6 +1820,24 @@ const app = new Elysia()
               required: true,
               description: 'Session ID',
             },
+            {
+              in: 'query',
+              name: 'limit',
+              schema: {
+                type: 'number',
+                example: 10,
+              },
+              required: false,
+            },
+            {
+              in: 'query',
+              name: 'offset',
+              schema: {
+                type: 'number',
+                example: 0,
+              },
+              required: false,
+            }
           ],
           responses: {
             200: {
@@ -2064,6 +2102,24 @@ const app = new Elysia()
               },
               required: true,
               description: 'Session ID',
+            },
+            {
+              in: 'query',
+              name: 'limit',
+              schema: {
+                type: 'number',
+                example: 10,
+              },
+              required: false,
+            },
+            {
+              in: 'query',
+              name: 'offset',
+              schema: {
+                type: 'number',
+                example: 0,
+              },
+              required: false,
             },
           ],
           responses: {
@@ -3902,6 +3958,26 @@ const app = new Elysia()
           tags: ['Challenges'],
           summary: 'Fetch all challenges',
           description: 'Retrieves a list of all challenges.',
+          parameters: [
+            {
+              in: 'query',
+              name: 'limit',
+              schema: {
+                type: 'number',
+                example: 10,
+              },
+              required: false,
+            },
+            {
+              in: 'query',
+              name: 'offset',
+              schema: {
+                type: 'number',
+                example: 0,
+              },
+              required: false,
+            },
+          ],
           responses: {
             200: {
               description: 'Challenges fetched successfully.',
@@ -4229,6 +4305,24 @@ const app = new Elysia()
                 example: '1',
               },
             },
+            {
+              in: 'query',
+              name: 'limit',
+              schema: {
+                type: 'number',
+                example: 10,
+              },
+              required: false,
+            },
+            {
+              in: 'query',
+              name: 'offset',
+              schema: {
+                type: 'number',
+                example: 0,
+              },
+              required: false,
+            }
           ],
           responses: {
             200: {
@@ -4407,6 +4501,24 @@ const app = new Elysia()
                 type: 'number',
                 example: '1',
               },
+            },
+            {
+              in: 'query',
+              name: 'limit',
+              schema: {
+                type: 'number',
+                example: 10,
+              },
+              required: false,
+            },
+            {
+              in: 'query',
+              name: 'offset',
+              schema: {
+                type: 'number',
+                example: 0,
+              },
+              required: false,
             },
           ],
           responses: {
@@ -4620,6 +4732,26 @@ const app = new Elysia()
           tags: ['Participations'],
           summary: 'Get all participations',
           description: 'Fetches all participations data.',
+          parameters: [
+            {
+              in: 'query',
+              name: 'limit',
+              schema: {
+                type: 'number',
+                example: 10,
+              },
+              required: false,
+            },
+            {
+              in: 'query',
+              name: 'offset',
+              schema: {
+                type: 'number',
+                example: 0,
+              },
+              required: false,
+            },
+          ],
           responses: {
             200: {
               description: 'Participations fetched successfully',
