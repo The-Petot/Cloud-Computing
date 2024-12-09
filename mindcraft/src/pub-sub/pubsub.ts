@@ -45,7 +45,7 @@ export async function publishGenerativeTask(material: string) {
 
 export async function listenForMessages(tasks: Map<string, PubSubResult>) {
   const subscription = pubSubClient.subscription(
-    getEnv('PUBSUB_TOPIC_ML_RESULTS')
+    getEnv('PUBSUB_TOPIC_ML_RESULTS') + '-sub'
   );
 
   subscription.on('message', async (message) => {
