@@ -204,16 +204,6 @@ export const handleUpdateUser: HandleUpdateUser = async ({
       message: 'userId is missing.',
     },
     {
-      field: 'newUserData',
-      value: newUserData,
-      message: 'newUserData is missing.',
-    },
-    {
-      field: 'newUserData',
-      value: Object.keys(newUserData).length > 0,
-      message: 'newUserData is empty.',
-    },
-    {
       field: 'accessToken',
       value: accessToken,
       message: 'accessToken is missing.',
