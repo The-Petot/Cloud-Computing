@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like, or } from 'drizzle-orm';
 import db from '../database/db';
 import {
   answersTable,
@@ -17,9 +17,30 @@ import { GenerateQuestionsResponse, handleDBError } from '../lib';
 const challengeService = {
   async getChallenges(
     limit: number,
-    offset: number
+    offset: number,
+    search?: string
   ): Promise<ServiceMethodReturnType<Challenge[]>> {
     try {
+      if (search) {
+        const searchQuery = `%${search}%`;
+        const challenges = await db
+          .select()
+          .from(challengesTable)
+          .where(
+            or(
+              like(challengesTable.title, searchQuery),
+              like(challengesTable.summary, searchQuery),
+              like(challengesTable.tags, searchQuery),
+              like(challengesTable.description, searchQuery)
+            )
+          )
+          .limit(limit)
+          .offset(offset);
+        return {
+          data: challenges,
+        };
+      }
+      
       const challenges = await db
         .select()
         .from(challengesTable)

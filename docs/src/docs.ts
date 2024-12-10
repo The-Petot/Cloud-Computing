@@ -1144,7 +1144,7 @@ const app = new Elysia()
                       description:
                         "The user's two-factor authentication token from the authenticator app.",
                       nullable: true,
-                    }
+                    },
                   },
                   required: ['token'],
                 },
@@ -1402,6 +1402,7 @@ const app = new Elysia()
                         items: {
                           type: 'object',
                           properties: {
+                            id: { type: 'number', example: 1 },
                             firstName: { type: 'string', example: 'John' },
                             lastName: { type: 'string', example: 'Doe' },
                             email: {
@@ -1412,12 +1413,17 @@ const app = new Elysia()
                               type: 'string',
                               example: 'https://example.com/john.jpg',
                             },
+                            currentRank: { type: 'number', example: 100 },
+                            totalScore: { type: 'number', example: 100 },
                           },
                           required: [
+                            'id',
                             'firstName',
                             'lastName',
                             'email',
                             'profileImgUrl',
+                            'currentRank',
+                            'totalScore',
                           ],
                         },
                       },
@@ -1837,7 +1843,7 @@ const app = new Elysia()
                 example: 0,
               },
               required: false,
-            }
+            },
           ],
           responses: {
             200: {
@@ -3977,6 +3983,15 @@ const app = new Elysia()
               },
               required: false,
             },
+            {
+              in: 'query',
+              name: 'search',
+              schema: {
+                type: 'string',
+                example: 'some search query',
+              },
+              required: false,
+            },
           ],
           responses: {
             200: {
@@ -4155,6 +4170,8 @@ const app = new Elysia()
                             nullable: true,
                           },
                           authorId: { type: 'integer', example: 1 },
+                          authorFirstName: { type: 'string', example: 'John' },
+                          authorLastName: { type: 'string', example: 'Doe' },
                           totalQuestions: { type: 'integer', example: 5 },
                           timeSeconds: { type: 'integer', example: 300 },
                           createdAt: {
@@ -4178,6 +4195,8 @@ const app = new Elysia()
                           'timeSeconds',
                           'createdAt',
                           'updatedAt',
+                          'authorFirstName',
+                          'authorLastName',
                         ],
                       },
                       message: {
@@ -4322,7 +4341,7 @@ const app = new Elysia()
                 example: 0,
               },
               required: false,
-            }
+            },
           ],
           responses: {
             200: {
