@@ -29,7 +29,7 @@ export type HandleGetChallenges = InferHandler<
   {
     query: { limit?: string; offset?: string, search?: string };
     response: {
-      200: JSONSuccessResponse<Challenge[]>;
+      200: JSONSuccessResponse<(Challenge & { authorFirstName: string; authorLastName: string })[]>;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;

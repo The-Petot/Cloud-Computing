@@ -4025,6 +4025,8 @@ const app = new Elysia()
                             nullable: true,
                           },
                           authorId: { type: 'integer', example: 1 },
+                          authorFirstName: { type: 'string', example: 'John' },
+                          authorLastName: { type: 'string', example: 'Doe' },
                           totalQuestions: { type: 'integer', example: 5 },
                           timeSeconds: { type: 'integer', example: 300 },
                           createdAt: {
@@ -4044,6 +4046,8 @@ const app = new Elysia()
                           'description',
                           'summary',
                           'authorId',
+                          'authorFirstName',
+                          'authorLastName',
                           'totalQuestions',
                           'timeSeconds',
                           'createdAt',

@@ -5,12 +5,14 @@ import {
   challengesTable,
   participantsTable,
   questionsTable,
+  usersTable,
 } from '../database/schema';
 import {
   Challenge,
   Participation,
   QuestionWithAnswers,
   ServiceMethodReturnType,
+  User,
 } from '../types/global.type';
 import { GenerateQuestionsResponse, handleDBError } from '../lib';
 
@@ -19,7 +21,9 @@ const challengeService = {
     limit: number,
     offset: number,
     search?: string
-  ): Promise<ServiceMethodReturnType<Challenge[]>> {
+  ): Promise<
+    ServiceMethodReturnType<{ challenges: Challenge; users: User }[]>
+  > {
     try {
       if (search) {
         const searchQuery = `%${search}%`;
@@ -34,6 +38,7 @@ const challengeService = {
               like(challengesTable.description, searchQuery)
             )
           )
+          .innerJoin(usersTable, eq(challengesTable.authorId, usersTable.id))
           .limit(limit)
           .offset(offset);
         return {
@@ -44,6 +49,7 @@ const challengeService = {
       const challenges = await db
         .select()
         .from(challengesTable)
+        .innerJoin(usersTable, eq(challengesTable.authorId, usersTable.id))
         .limit(limit)
         .offset(offset);
 

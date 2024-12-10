@@ -6,7 +6,7 @@ import {
   HandleGetChallengeParticipants,
   HandleGetChallengeQuestions,
 } from '../types/challenge.type';
-import { Challenge, ServiceMethodReturnType } from '../types/global.type';
+import { Challenge, ServiceMethodReturnType, User } from '../types/global.type';
 import { isANumber, isServiceMethodSuccess, setError } from '../utils';
 
 export const handleGetChallenges: HandleGetChallenges = async ({
@@ -28,7 +28,7 @@ export const handleGetChallenges: HandleGetChallenges = async ({
     }
   }
 
-  let challenges: ServiceMethodReturnType<Challenge[]>;
+  let challenges: ServiceMethodReturnType<{ challenges: Challenge; users: User }[]>;
   if (query?.search) {
     challenges = await challengeService.getChallenges(
       limit,
@@ -43,10 +43,20 @@ export const handleGetChallenges: HandleGetChallenges = async ({
     return setError(set, challenges.statusCode, challenges.errors, null);
   }
 
+  const result = challenges.data.map((data) => {
+    const challenge = data.challenges;
+    const author = data.users;
+    return {
+      ...challenge,
+      authorFirstName: author.firstName,
+      authorLastName: author.lastName,
+    };
+  })
+
   set.status = 200;
   return {
     success: true,
-    data: challenges.data,
+    data: result,
     message: 'Challenges fetched successfully.',
     links: {
       self: '/challenges',
