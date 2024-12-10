@@ -694,7 +694,11 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
   set.status = 201;
   return {
     success: true,
-    data: challengeResult.data,
+    data: {
+      ...challengeResult.data,
+      authorFirstName: sessionData.firstName,
+      authorLastName: sessionData.lastName,
+    },
     message: 'Challenge created successfully.',
     links: {
       self: `/users/${userIdNumber}/challenges/${challengeResult.data.id}`,

@@ -2419,6 +2419,14 @@ const app = new Elysia()
                             type: 'integer',
                             example: 1,
                           },
+                          authorFirstName: {
+                            type: 'string',
+                            example: 'Agus',
+                          },
+                          authorLastName: {
+                            type: 'string',
+                            example: 'Hitam',
+                          },
                           title: {
                             type: 'string',
                             example: 'Coding Challenge 1',
@@ -2461,6 +2469,8 @@ const app = new Elysia()
                           'description',
                           'summary',
                           'authorId',
+                          'authorFirstName',
+                          'authorLastName',
                           'totalQuestions',
                           'timeSeconds',
                           'createdAt',
