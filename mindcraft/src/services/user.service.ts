@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import db from '../database/db';
 import {
   challengesTable,
@@ -87,7 +87,7 @@ const userService = {
     try {
       const [user] = await db
         .update(usersTable)
-        .set(newUserData)
+        .set({ ...newUserData, updatedAt: new Date() })
         .where(eq(usersTable.id, userId))
         .returning();
 
@@ -223,6 +223,60 @@ const userService = {
       };
     } catch (error) {
       return handleDBError(error, 'Unable to delete user challenge');
+    }
+  },
+  async updateUserScore(
+    userId: number,
+    score: number
+  ): Promise<ServiceMethodReturnType<{ newScore: number }>> {
+    try {
+      const [user] = await db
+        .select({ totalScore: usersTable.totalScore })
+        .from(usersTable)
+        .where(eq(usersTable.id, userId));
+
+      const [updatedUserScore] = await db
+        .update(usersTable)
+        .set({ totalScore: user.totalScore + score, updatedAt: new Date() })
+        .where(eq(usersTable.id, userId))
+        .returning({ totalScore: usersTable.totalScore });
+
+      const users = await db
+        .select()
+        .from(usersTable)
+        .orderBy(desc(usersTable.totalScore));
+      const userIndex = users.findIndex((u) => u.id === userId);
+
+      let startIndex = 0;
+      for (let i = 0; i < users.length; i++) {
+        if (users[i].totalScore <= updatedUserScore.totalScore) {
+          await db
+            .update(usersTable)
+            .set({ currentRank: i + 1, updatedAt: new Date() })
+            .where(eq(usersTable.id, userId))
+            .returning();
+          startIndex = i + 1;
+          break;
+        }
+      }
+
+      await db.transaction(async (trx) => {
+        for (let i = startIndex; i < users.length; i++) {
+          await trx
+            .update(usersTable)
+            .set({ currentRank: i + 1, updatedAt: new Date() })
+            .where(eq(usersTable.id, users[i].id))
+            .returning();
+        }
+      });
+
+      return {
+        data: {
+          newScore: updatedUserScore.totalScore,
+        },
+      };
+    } catch (error) {
+      return handleDBError(error, 'Unable to update user score');
     }
   },
 };

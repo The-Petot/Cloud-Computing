@@ -194,7 +194,7 @@ export const handleUpdateUser: HandleUpdateUser = async ({
     );
   }
 
-  const { newUserData, profileImage } = body;
+  const { profileImage, ...newUserData } = body;
   const { userId } = params;
 
   const validations = [
@@ -812,6 +812,11 @@ export const handleCreateUserParticipation: HandleCreateUserParticipation =
         participation.errors,
         null
       );
+    }
+
+    const updateUserScore = await userService.updateUserScore(userIdNumber, score);
+    if (!isServiceMethodSuccess(updateUserScore)) {
+      return setError(set, updateUserScore.statusCode, updateUserScore.errors, null);
     }
 
     set.status = 201;

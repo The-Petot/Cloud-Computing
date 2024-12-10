@@ -74,7 +74,7 @@ export type HandleUpdateUser = InferHandler<
   typeof app,
   '/users/:userId',
   {
-    body: { newUserData: Partial<User>; profileImage?: File };
+    body: Partial<User> & { profileImage?: File }
     params: { userId: string };
     response: {
       200: JSONSuccessResponse<Partial<Omit<User, 'password'>>>;
@@ -142,6 +142,8 @@ export type HandleCreateUserParticipation = InferHandler<
     body: {
       challengeId: number;
       score: number;
+      currentUserTotalScore: number;
+      currentUserRank: number;
     };
     response: {
       200: JSONSuccessResponse<Participation>;

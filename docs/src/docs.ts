@@ -2716,6 +2716,8 @@ const app = new Elysia()
                             format: 'date-time',
                             example: '2024-12-05 12:00:00Z',
                           },
+                          currentUserTotalScore: {  type: 'integer', example: 100 },
+                          currentUserRank: {  type: 'integer', example: 1 },
                         },
                         required: [
                           'id',
@@ -2723,6 +2725,8 @@ const app = new Elysia()
                           'challengeId',
                           'score',
                           'createdAt',
+                          'currentUserTotalScore',
+                          'currentUserRank',
                         ],
                       },
                       message: {
@@ -2938,32 +2942,26 @@ const app = new Elysia()
                 schema: {
                   type: 'object',
                   properties: {
-                    newUserData: {
-                      type: 'object',
-                      properties: {
-                        firstName: { type: 'string', example: 'Jane' },
-                        lastName: { type: 'string', example: 'Smith' },
-                        password: { type: 'string', example: 'password' },
-                        email: {
-                          type: 'string',
-                          example: 'jane.smith@example.com',
-                        },
-                        profileImgUrl: {
-                          type: 'string',
-                          example: 'https://example.com/jane.jpg',
-                        },
-                        notificationEnabled: { type: 'boolean', example: true },
-                        totalScore: { type: 'number', example: 100 },
-                        currentRank: { type: 'number', example: 100 },
-                      },
+                    firstName: { type: 'string', example: 'Jane' },
+                    lastName: { type: 'string', example: 'Smith' },
+                    password: { type: 'string', example: 'password' },
+                    email: {
+                      type: 'string',
+                      example: 'jane.smith@example.com',
                     },
+                    profileImgUrl: {
+                      type: 'string',
+                      example: 'https://example.com/jane.jpg',
+                    },
+                    notificationEnabled: { type: 'boolean', example: true },
+                    totalScore: { type: 'number', example: 100 },
+                    currentRank: { type: 'number', example: 100 },
                     profileImage: {
                       type: 'string',
                       format: 'binary',
                       description: 'Profile image file',
                     },
                   },
-                  required: ['newUserData'],
                 },
               },
             },

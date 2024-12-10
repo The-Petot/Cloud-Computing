@@ -40,7 +40,7 @@ const challengeService = {
           data: challenges,
         };
       }
-      
+
       const challenges = await db
         .select()
         .from(challengesTable)
@@ -213,7 +213,7 @@ const challengeService = {
     try {
       const [updatedChallenge] = await db
         .update(challengesTable)
-        .set(challenge)
+        .set({ ...challenge, updatedAt: new Date() })
         .where(
           and(
             eq(challengesTable.id, challengeId),
