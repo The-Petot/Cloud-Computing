@@ -43,26 +43,30 @@ export const handleUserRegister: HandleUserRegister = async ({ set, body }) => {
   const { email, password, firstName, lastName } = body;
   const errors: BaseError = [];
   const validations = [
-    { field: 'email', value: email, errorMessage: 'Email is missing.' },
+    {
+      field: 'email',
+      value: email !== undefined && email.trim() !== undefined,
+      errorMessage: 'Email is missing.',
+    },
     {
       field: 'password',
-      value: password,
+      value: password !== undefined && password?.trim() !== undefined,
       errorMessage: 'Password is missing.',
     },
     {
       field: 'firstName',
-      value: firstName,
+      value: firstName !== undefined && firstName.trim() !== undefined,
       errorMessage: 'First name is missing.',
     },
     {
       field: 'lastName',
-      value: lastName,
+      value: lastName !== undefined && lastName.trim() !== undefined,
       errorMessage: 'Last name is missing.',
     },
   ];
 
   for (const { field, value, errorMessage } of validations) {
-    if (!value?.trim()) errors.push({ messages: [errorMessage], field });
+    if (!value) errors.push({ messages: [errorMessage], field });
   }
 
   if (errors.length > 0) return setError(set, 400, errors, null);
@@ -147,16 +151,20 @@ export const handleUserLogin: HandleUserLogin = async ({
   const erros: BaseError = [];
 
   const validations = [
-    { field: 'email', value: email, errorMessage: 'Email is missing.' },
+    {
+      field: 'email',
+      value: email !== undefined && email.trim() !== undefined,
+      errorMessage: 'Email is missing.',
+    },
     {
       field: 'password',
-      value: password,
+      value: password !== undefined && password.trim() !== undefined,
       errorMessage: 'Password is missing.',
     },
   ];
 
   for (const { field, value, errorMessage } of validations) {
-    if (!value?.trim()) erros.push({ messages: [errorMessage], field });
+    if (!value) erros.push({ messages: [errorMessage], field });
   }
 
   if (erros.length > 0) return setError(set, 400, erros, null);
@@ -257,15 +265,19 @@ export const handleTokenRefresh: HandleTokenRefresh = async ({
   const { userId } = body;
   const errors: BaseError = [];
   const validations = [
-    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
+    {
+      field: 'userId',
+      value: userId !== undefined,
+      errorMessage: 'User ID is missing.',
+    },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       errorMessage: 'Session ID is missing.',
     },
     {
       field: 'refreshToken',
-      value: refreshToken,
+      value: refreshToken !== undefined,
       errorMessage: 'Refresh token is missing.',
     },
   ];
@@ -370,15 +382,19 @@ export const handleUserLogout: HandleUserLogout = async ({
   const { userId } = body;
   const errors: BaseError = [];
   const validations = [
-    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
+    {
+      field: 'userId',
+      value: userId !== undefined,
+      errorMessage: 'User ID is missing.',
+    },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       errorMessage: 'Session ID is missing.',
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       errorMessage: 'Access token is missing.',
     },
   ];
@@ -451,26 +467,34 @@ export const handleToggleTwoFactor: HandleToggleTwoFactor = async ({
   const validations = [
     {
       field: 'enable',
-      value: enable,
+      value: enable !== undefined,
       errorMessage: 'Enable flag is missing.',
     },
-    { field: 'userId', value: userId, errorMessage: 'User ID is missing.' },
+    {
+      field: 'userId',
+      value: userId !== undefined,
+      errorMessage: 'User ID is missing.',
+    },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       errorMessage: 'Session ID is missing.',
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       errorMessage: 'Access token is missing.',
     },
     {
       field: 'secret',
-      value: secret,
+      value: secret !== undefined,
       errorMessage: '2FA Secret is missing.',
     },
-    { field: 'token', value: token, errorMessage: '2FA Token is missing.' },
+    {
+      field: 'token',
+      value: token !== undefined,
+      errorMessage: '2FA Token is missing.',
+    },
   ];
 
   for (const { field, value, errorMessage } of validations) {
@@ -576,24 +600,10 @@ export const handleGoogleOAuth: HandleGoogleOAuth = async ({
 }) => {
   set.headers['content-type'] = 'application/json';
   set.headers['accept'] = 'application/json';
-  /*
-export type GoogleUser = {
-  sub: string;
-  name: string;
-  given_name: string;
-  family_name: string;
-  picture: string;
-  email: string;
-  email_verified: boolean;
-  locale: string;
-  hd: string;
-};
-  */
 
   if (!body) return setError(set, 400, null, ['Request body is missing.']);
 
   const { token } = body;
-
   if (!token) return setFieldError(set, 400, 'token', ['Token is missing.']);
 
   const googleUserResult = await getGoogleUser(token);
@@ -716,12 +726,7 @@ export type GoogleUser = {
 
   const createResult = await userService.create(newUser);
   if (!isServiceMethodSuccess<User>(createResult)) {
-    return setError(
-      set,
-      createResult.statusCode,
-      createResult.errors,
-      null
-    );
+    return setError(set, createResult.statusCode, createResult.errors, null);
   }
 
   const sessionId = createSessionId(createResult.data.id!);

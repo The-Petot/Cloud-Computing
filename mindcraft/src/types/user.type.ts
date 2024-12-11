@@ -1,6 +1,12 @@
 import { InferHandler } from 'elysia';
 import app from '..';
-import { Challenge, JSONErrorResponse, JSONSuccessResponse, Participation, User } from './global.type';
+import {
+  Challenge,
+  JSONErrorResponse,
+  JSONSuccessResponse,
+  Participation,
+  User,
+} from './global.type';
 
 export type HandleGetUserById = InferHandler<
   typeof app,
@@ -74,7 +80,7 @@ export type HandleUpdateUser = InferHandler<
   typeof app,
   '/users/:userId',
   {
-    body: { newUserData: Partial<User>; profileImage?: File };
+    body: Partial<User> & { profileImage?: File };
     params: { userId: string };
     response: {
       200: JSONSuccessResponse<Partial<Omit<User, 'password'>>>;
@@ -126,7 +132,9 @@ export type HandleCreateUserChallenge = InferHandler<
       tags?: string[];
     };
     response: {
-      200: JSONSuccessResponse<Challenge>;
+      200: JSONSuccessResponse<
+        Challenge & { authorFirstName: string; authorLastName: string }
+      >;
       400: JSONErrorResponse;
       401: JSONErrorResponse;
       500: JSONErrorResponse;
@@ -142,6 +150,8 @@ export type HandleCreateUserParticipation = InferHandler<
     body: {
       challengeId: number;
       score: number;
+      currentUserTotalScore: number;
+      currentUserRank: number;
     };
     response: {
       200: JSONSuccessResponse<Participation>;

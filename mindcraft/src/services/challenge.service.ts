@@ -1,28 +1,55 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like, or } from 'drizzle-orm';
 import db from '../database/db';
 import {
   answersTable,
   challengesTable,
   participantsTable,
   questionsTable,
+  usersTable,
 } from '../database/schema';
 import {
   Challenge,
   Participation,
   QuestionWithAnswers,
   ServiceMethodReturnType,
+  User,
 } from '../types/global.type';
 import { Questions, handleDBError } from '../lib';
 
 const challengeService = {
   async getChallenges(
     limit: number,
-    offset: number
-  ): Promise<ServiceMethodReturnType<Challenge[]>> {
+    offset: number,
+    search?: string
+  ): Promise<
+    ServiceMethodReturnType<{ challenges: Challenge; users: User }[]>
+  > {
     try {
+      if (search) {
+        const searchQuery = `%${search}%`;
+        const challenges = await db
+          .select()
+          .from(challengesTable)
+          .where(
+            or(
+              like(challengesTable.title, searchQuery),
+              like(challengesTable.summary, searchQuery),
+              like(challengesTable.tags, searchQuery),
+              like(challengesTable.description, searchQuery)
+            )
+          )
+          .innerJoin(usersTable, eq(challengesTable.authorId, usersTable.id))
+          .limit(limit)
+          .offset(offset);
+        return {
+          data: challenges,
+        };
+      }
+
       const challenges = await db
         .select()
         .from(challengesTable)
+        .innerJoin(usersTable, eq(challengesTable.authorId, usersTable.id))
         .limit(limit)
         .offset(offset);
 
@@ -192,7 +219,7 @@ const challengeService = {
     try {
       const [updatedChallenge] = await db
         .update(challengesTable)
-        .set(challenge)
+        .set({ ...challenge, updatedAt: new Date() })
         .where(
           and(
             eq(challengesTable.id, challengeId),

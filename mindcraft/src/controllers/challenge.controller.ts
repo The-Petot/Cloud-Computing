@@ -1,13 +1,18 @@
 import challengeService from '../services/challenge.service';
+import userService from '../services/user.service';
 import {
   HandleGetChallenges,
   HandleGetChallengeById,
   HandleGetChallengeParticipants,
   HandleGetChallengeQuestions,
 } from '../types/challenge.type';
+import { Challenge, ServiceMethodReturnType, User } from '../types/global.type';
 import { isANumber, isServiceMethodSuccess, setError } from '../utils';
 
-export const handleGetChallenges: HandleGetChallenges = async ({ set, query }) => {
+export const handleGetChallenges: HandleGetChallenges = async ({
+  set,
+  query,
+}) => {
   set.headers['content-type'] = 'application/json';
 
   let limit = 100;
@@ -23,15 +28,35 @@ export const handleGetChallenges: HandleGetChallenges = async ({ set, query }) =
     }
   }
 
-  const challenges = await challengeService.getChallenges(limit, offset);
+  let challenges: ServiceMethodReturnType<{ challenges: Challenge; users: User }[]>;
+  if (query?.search) {
+    challenges = await challengeService.getChallenges(
+      limit,
+      offset,
+      query.search
+    );
+  } else {
+    challenges = await challengeService.getChallenges(limit, offset);
+  }
+
   if (!isServiceMethodSuccess(challenges)) {
     return setError(set, challenges.statusCode, challenges.errors, null);
   }
 
+  const result = challenges.data.map((data) => {
+    const challenge = data.challenges;
+    const author = data.users;
+    return {
+      ...challenge,
+      authorFirstName: author.firstName,
+      authorLastName: author.lastName,
+    };
+  })
+
   set.status = 200;
   return {
     success: true,
-    data: challenges.data,
+    data: result,
     message: 'Challenges fetched successfully.',
     links: {
       self: '/challenges',
@@ -82,10 +107,19 @@ export const handleGetChallengeById: HandleGetChallengeById = async ({
     return setError(set, challenge.statusCode, challenge.errors, null);
   }
 
+  const author = await userService.getUserById(challenge.data.authorId);
+  if (!isServiceMethodSuccess(author)) {
+    return setError(set, author.statusCode, author.errors, null);
+  }
+
   set.status = 200;
   return {
     success: true,
-    data: challenge.data,
+    data: {
+      ...challenge.data,
+      authorFirstName: author.data.firstName,
+      authorLastName: author.data.lastName,
+    },
     message: 'Challenge fetched successfully.',
     links: {
       self: `/challenges/${challengeId}`,
@@ -143,7 +177,11 @@ export const handleGetChallengeParticipants: HandleGetChallengeParticipants =
 
     const challengeIdNumber = parseInt(challengeId);
     const challengeParticipants =
-      await challengeService.getChallengeParticipants(challengeIdNumber, limit, offset);
+      await challengeService.getChallengeParticipants(
+        challengeIdNumber,
+        limit,
+        offset
+      );
     if (!isServiceMethodSuccess(challengeParticipants)) {
       return setError(
         set,
@@ -170,7 +208,7 @@ export const handleGetChallengeParticipants: HandleGetChallengeParticipants =
 export const handleGetChallengeQuestions: HandleGetChallengeQuestions = async ({
   set,
   params,
-  query
+  query,
 }) => {
   set.headers['content-type'] = 'application/json';
 
