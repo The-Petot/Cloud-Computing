@@ -104,12 +104,12 @@ export const handleGetUserById: HandleGetUserById = async ({
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       message: 'accessToken is missing.',
     },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       message: 'sessionId is missing.',
     },
   ];
@@ -207,12 +207,12 @@ export const handleUpdateUser: HandleUpdateUser = async ({
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       message: 'accessToken is missing.',
     },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       message: 'sessionId is missing.',
     },
   ];
@@ -327,12 +327,12 @@ export const handleDeleteUser: HandleDeleteUser = async ({
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       message: 'accessToken is missing.',
     },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       message: 'sessionId is missing.',
     },
   ];
@@ -573,12 +573,12 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
     },
     {
       field: 'title',
-      value: title,
+      value: title !== undefined,
       message: 'title is missing.',
     },
     {
       field: 'material',
-      value: material,
+      value: material !== undefined,
       message: 'material is missing.',
     },
     {
@@ -588,12 +588,12 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       message: 'accessToken is missing.',
     },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       message: 'sessionId is missing.',
     },
   ];

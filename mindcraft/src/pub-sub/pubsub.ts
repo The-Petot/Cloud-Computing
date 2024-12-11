@@ -12,7 +12,7 @@ export function isPublishPubSubTaskError(
 export async function publishSummaryTask(material: string) {
   const topic = pubSubClient.topic(getEnv('PUBSUB_TOPIC_ML_SUMMARY'));
   const taskId = v4();
-  const payload = JSON.stringify({ taskId, material });
+  const payload = JSON.stringify({ taskId, text: material });
   try {
     const messageId = await topic.publishMessage({ data: payload });
     console.log(`Message ${messageId} published.`);
@@ -29,7 +29,7 @@ export async function publishSummaryTask(material: string) {
 export async function publishGenerativeTask(material: string) {
   const topic = pubSubClient.topic(getEnv('PUBSUB_TOPIC_ML_GENERATE'));
   const taskId = v4();
-  const payload = JSON.stringify({ taskId, material });
+  const payload = JSON.stringify({ taskId, text: material });
   try {
     const messageId = await topic.publishMessage({ data: payload });
     console.log(`Message ${messageId} published.`);
@@ -49,8 +49,9 @@ export async function listenForMessages(tasks: Map<string, PubSubResult>) {
   );
 
   subscription.on('message', async (message) => {
-    const data: PubSubResult = JSON.parse(message.data.toString());
-    tasks.set(data.id, data);
+    const data = message.data.toString('utf-8');
+    const parsedData: PubSubResult = JSON.parse(data);
+    tasks.set(parsedData.taskId, parsedData);
     message.ack();
   });
 

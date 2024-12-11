@@ -57,14 +57,14 @@ export type ServiceMethodReturnType<T> =
     };
 
 export type SummaryResult = {
-  id: string;
+  taskId: string;
   taskType: 'summary';
   summary: string;
   processing_time_seconds: number;
 };
 
 export type GenerateResult = {
-  id: string;
+  taskId: string;
   taskType: 'generate';
   questions: Questions;
 };
