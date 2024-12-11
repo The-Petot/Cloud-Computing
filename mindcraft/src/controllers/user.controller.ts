@@ -97,7 +97,7 @@ export const handleGetUserById: HandleGetUserById = async ({
   const validations = [
     {
       field: 'userId',
-      value: userId,
+      value: userId !== undefined,
       messgae: 'userId is missing.',
     },
     {
@@ -200,7 +200,7 @@ export const handleUpdateUser: HandleUpdateUser = async ({
   const validations = [
     {
       field: 'userId',
-      value: userId,
+      value: userId !== undefined,
       message: 'userId is missing.',
     },
     {
@@ -320,7 +320,7 @@ export const handleDeleteUser: HandleDeleteUser = async ({
   const validations = [
     {
       field: 'userId',
-      value: userId,
+      value: userId !== undefined,
       message: 'userId is missing.',
     },
     {
@@ -424,7 +424,11 @@ export const handleGetUserChallenges: HandleGetUserChallenges = async ({
   }
 
   const userIdNumber = parseInt(userId);
-  const userChallenges = await userService.getUserChallenges(userIdNumber, limit, offset);
+  const userChallenges = await userService.getUserChallenges(
+    userIdNumber,
+    limit,
+    offset
+  );
   if (!isServiceMethodSuccess(userChallenges)) {
     return setError(
       set,
@@ -457,7 +461,7 @@ export const handleGetUserChallenges: HandleGetUserChallenges = async ({
 export const handleGetUserParticipations: HandleGetUserParticipations = async ({
   set,
   params,
-  query
+  query,
 }) => {
   set.headers['content-type'] = 'application/json';
 
@@ -562,7 +566,7 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
   const validations = [
     {
       field: 'userId',
-      value: userId,
+      value: userId !== undefined,
       message: 'userId is missing.',
     },
     {
@@ -577,7 +581,7 @@ export const handleCreateUserChallenge: HandleCreateUserChallenge = async ({
     },
     {
       field: 'timeSeconds',
-      value: timeSeconds,
+      value: timeSeconds !== undefined,
       message: 'timeSeconds is missing.',
     },
     {
@@ -735,17 +739,17 @@ export const handleCreateUserParticipation: HandleCreateUserParticipation =
     const validations = [
       {
         field: 'userId',
-        value: userId,
+        value: userId !== undefined,
         message: 'userId is missing.',
       },
       {
         field: 'challengeId',
-        value: challengeId,
+        value: challengeId !== undefined,
         message: 'challengeId is missing.',
       },
       {
         field: 'score',
-        value: score,
+        value: score !== undefined,
         message: 'score is missing.',
       },
       {
@@ -808,9 +812,17 @@ export const handleCreateUserParticipation: HandleCreateUserParticipation =
       );
     }
 
-    const updateUserScore = await userService.updateUserScore(userIdNumber, score);
+    const updateUserScore = await userService.updateUserScore(
+      userIdNumber,
+      score
+    );
     if (!isServiceMethodSuccess(updateUserScore)) {
-      return setError(set, updateUserScore.statusCode, updateUserScore.errors, null);
+      return setError(
+        set,
+        updateUserScore.statusCode,
+        updateUserScore.errors,
+        null
+      );
     }
 
     set.status = 201;
@@ -856,7 +868,7 @@ export const handleDeleteUserChallenge: HandleDeleteUserChallenge = async ({
   const validations = [
     {
       field: 'userId',
-      value: userId,
+      value: userId !== undefined,
       message: 'userId is missing.',
     },
     {
@@ -982,7 +994,7 @@ export const handleUpdateUserChallenge: HandleUpdateUserChallenge = async ({
   const validations = [
     {
       field: 'userId',
-      value: userId,
+      value: userId !== undefined,
       message: 'userId is missing.',
     },
     {
