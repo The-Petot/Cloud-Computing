@@ -33,6 +33,7 @@ import {
   verifyJwtToken,
 } from '../lib';
 import { isUploadFileSuccess, uploadFile } from '../storage/bucket';
+import { isUndefined } from 'node:util';
 
 export const handleGetUsers: HandleGetUsers = async ({ set, query }) => {
   set.headers['content-type'] = 'application/json';
@@ -754,12 +755,12 @@ export const handleCreateUserParticipation: HandleCreateUserParticipation =
       },
       {
         field: 'accessToken',
-        value: accessToken,
+        value: accessToken !== undefined,
         message: 'accessToken is missing.',
       },
       {
         field: 'sessionId',
-        value: sessionId,
+        value: sessionId !== undefined,
         message: 'sessionId is missing.',
       },
     ];
@@ -873,17 +874,17 @@ export const handleDeleteUserChallenge: HandleDeleteUserChallenge = async ({
     },
     {
       field: 'challengeId',
-      value: challengeId,
+      value: challengeId !== undefined,
       message: 'challengeId is missing.',
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       message: 'accessToken is missing.',
     },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       message: 'sessionId is missing.',
     },
   ];
@@ -999,17 +1000,17 @@ export const handleUpdateUserChallenge: HandleUpdateUserChallenge = async ({
     },
     {
       field: 'challengeId',
-      value: challengeId,
+      value: challengeId !== undefined,
       message: 'challengeId is missing.',
     },
     {
       field: 'accessToken',
-      value: accessToken,
+      value: accessToken !== undefined,
       message: 'accessToken is missing.',
     },
     {
       field: 'sessionId',
-      value: sessionId,
+      value: sessionId !== undefined,
       message: 'sessionId is missing.',
     },
   ];
