@@ -1,4 +1,4 @@
-import { and, eq, like, or } from 'drizzle-orm';
+import { and, desc, eq, like, or } from 'drizzle-orm';
 import db from '../database/db';
 import {
   answersTable,
@@ -40,7 +40,9 @@ const challengeService = {
           )
           .innerJoin(usersTable, eq(challengesTable.authorId, usersTable.id))
           .limit(limit)
-          .offset(offset);
+          .offset(offset)
+          .orderBy(desc(challengesTable.id));
+
         return {
           data: challenges,
         };
@@ -51,7 +53,8 @@ const challengeService = {
         .from(challengesTable)
         .innerJoin(usersTable, eq(challengesTable.authorId, usersTable.id))
         .limit(limit)
-        .offset(offset);
+        .offset(offset)
+        .orderBy(desc(challengesTable.id));
 
       return {
         data: challenges,
