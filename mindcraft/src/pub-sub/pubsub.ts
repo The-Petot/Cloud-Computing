@@ -12,9 +12,9 @@ export function isPublishPubSubTaskError(
 export async function publishSummaryTask(material: string) {
   const topic = pubSubClient.topic(getEnv('PUBSUB_TOPIC_ML_SUMMARY'));
   const taskId = v4();
-  const payload = JSON.stringify({ taskId, text: material });
+  const payload = Buffer.from(JSON.stringify({ taskId, text: material }))
   try {
-    const messageId = await topic.publishMessage({ data: payload });
+    const messageId = await topic.publishMessage({ data: new Uint8Array(payload) });
     console.log(`Message ${messageId} published.`);
     return taskId;
   } catch (error) {
@@ -29,9 +29,9 @@ export async function publishSummaryTask(material: string) {
 export async function publishGenerativeTask(material: string) {
   const topic = pubSubClient.topic(getEnv('PUBSUB_TOPIC_ML_GENERATE'));
   const taskId = v4();
-  const payload = JSON.stringify({ taskId, text: material });
+  const payload = Buffer.from(JSON.stringify({ taskId, text: material }))
   try {
-    const messageId = await topic.publishMessage({ data: payload });
+    const messageId = await topic.publishMessage({ data: new Uint8Array(payload) });
     console.log(`Message ${messageId} published.`);
     return taskId;
   } catch (error) {
