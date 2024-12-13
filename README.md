@@ -111,8 +111,6 @@ Certificate       : Managed SSL
 
 Docs: [load-balancer-docs](https://cloud.google.com/load-balancing/docs)
 
----
-
 ### Pub/Sub
 
 <img src="https://cdnlogo.com/logos/g/76/google-cloud-pub-sub.svg" width="150" height="150"/>
@@ -121,25 +119,23 @@ This Pub/Sub service **`has been provisioned`** on the development environment.
 
 ```YAML
 Location        : asia-southeast2
-Topic Count     : 3
+Topic Count     : 5
+Subscription    : 10
+Retention       : 7 days
 ```
 
 Docs: [pub-sub-docs](https://cloud.google.com/pubsub/docs)
 
----
-
-### Cloud Architecture 
+## Cloud Architecture 
 
 This is our cloud architecture that we use for this project
 
 <img src="https://raw.githubusercontent.com/Aku-Mars/gambar/refs/heads/main/Cloud%20Architecture.png"/>
 
----
-
-### Google Cloud's pricing calculator
+## Google Cloud's pricing calculator
 
 We calculated all services using google cloud's pricing calculator, and got estimated Rp4.917.858/Month
 
 <img src="https://raw.githubusercontent.com/Aku-Mars/gambar/refs/heads/main/GCPC.png"/>
 
-
+---
