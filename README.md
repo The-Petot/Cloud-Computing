@@ -62,7 +62,7 @@ Storage Class   : Standard
 ---  
 
 ### 🚀 Cloud Run  
-<img src="https://static-00.iconduck.com/assets.00/google-cloud-run-icon-2048x1840-x12dqzzh.png" width="150" height="150" alt="Cloud Run Icon"/>  
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR76noBKqzH7bfIbengsbD0BW1NvG_E-L39cg&s" width="150" height="150" alt="Cloud Run Icon"/>  
 Enables rapid deployment of containerized machine learning models.  
 
 ```YAML
